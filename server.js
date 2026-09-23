@@ -310,6 +310,17 @@ const server = http.createServer(async (req, res) => {
 
     if (
       req.method === "GET" &&
+      url.pathname === "/magizh-logo-intro.mp4"
+    ) {
+      return sendFile(
+        res,
+        "magizh-logo-intro.mp4",
+        "video/mp4"
+      );
+    }
+
+    if (
+      req.method === "GET" &&
       url.pathname === "/favicon.ico"
     ) {
       res.writeHead(204);
