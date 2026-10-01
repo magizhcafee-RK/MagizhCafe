@@ -1,0 +1,50 @@
+MAGIZH CAFE – VERIFIED GITHUB PAGES FIX
+===========================================
+
+Files reviewed from the supplied project ZIP:
+- index.html
+- admin.html
+- server-sync.js
+- server.js
+- package.json
+- patch.py
+- index(5).html
+- Magizh_Cafe_Approved_Base_No_Earning.html
+- README files
+- test data file
+
+VERIFIED FIXES
+1. index.html
+   - Changed /login-intro.mp4 -> login-intro.mp4
+   - Changed /server-sync.js -> server-sync.js
+   - Removed the early syncCustomerHeader() call that ran before its function
+     definition. The later DOMContentLoaded call remains.
+
+2. admin.html
+   - Changed /server-sync.js -> server-sync.js
+
+3. server-sync.js
+   - Changed API calls from same-origin /api/state to the existing
+     Cloudflare Worker:
+     https://magizh-api-fdb2.magizhcafee.workers.dev
+   - Added an optional window.MAGIZH_API_BASE override for future use.
+
+STATIC VERIFICATION
+- index.html inline JavaScript syntax: PASS
+- admin.html inline JavaScript syntax: PASS
+- server.js syntax: PASS
+- patch.py syntax: PASS
+- package.json JSON: PASS
+- magizh-test-data.json JSON: PASS
+- No remaining root-absolute src/href paths in the active index/admin files.
+
+IMPORTANT
+The supplied ZIP does not contain the live Cloudflare Worker source code, so the
+live Worker API/CORS response cannot be fully verified from this ZIP alone.
+The frontend is now pointed to the known Worker URL. After uploading these
+fixed files, the final live check should be done in the GitHub Pages browser
+console/network panel.
+
+Backup HTML files were left unchanged because they are not the active
+index.html/admin.html pages. The original project files were otherwise
+preserved.

@@ -6,9 +6,15 @@
     'magizhUsers','magizhOrders','magizhProducts','magizhCategories',
     'magizhSettings','magizhB5','magizhCoinWallet'
   ];
+  const API_BASE = (window.MAGIZH_API_BASE ||
+    'https://magizh-api-fdb2.magizhcafee.workers.dev').replace(/\/+$/, '');
   const SYNC_KEYS = Array.isArray(window.MAGIZH_SYNC_KEYS)
     ? window.MAGIZH_SYNC_KEYS
     : DEFAULT_KEYS;
+
+  function apiUrl(path){
+    return API_BASE + path;
+  }
   const KEY_SET = new Set(SYNC_KEYS);
 
   const nativeSet = localStorage.setItem.bind(localStorage);
@@ -26,7 +32,7 @@
 
   async function putOne(key, value){
     try{
-      const r = await fetch('/api/state', {
+      const r = await fetch(apiUrl('/api/state'), {
         method:'PUT',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({key,value})
@@ -67,7 +73,7 @@
     try{
       const params = new URLSearchParams();
       if(SYNC_KEYS.length) params.set('keys', SYNC_KEYS.join(','));
-      const r = await fetch('/api/state?'+params.toString(), {cache:'no-store'});
+      const r = await fetch(apiUrl('/api/state?'+params.toString()), {cache:'no-store'});
       if(!r.ok) return false;
       const j = await r.json();
       if(!j.state) return false;
