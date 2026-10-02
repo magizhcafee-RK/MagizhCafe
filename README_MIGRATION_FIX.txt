@@ -1,15 +1,19 @@
-MAGIZH CLOUDFLARE BUILD FIX
+MAGIZH CLOUDFLARE BUILD FIX — FINAL CONFIG
 
-This is a corrected build-fix package.
+Existing D1 database:
+  magizh-db
+  database_id: df4995ae-0e06-4c9b-9e4f-c36ea4581734
 
-1. Keep the existing GitHub frontend files at repository root.
-2. Replace the current worker.js and wrangler.jsonc with these files.
-3. Put the EXISTING magizh-db Database ID into wrangler.jsonc.
-4. Commit to main. Cloudflare Workers Builds will then deploy.
+Worker:
+  magizh-api-fdb2
 
-Do NOT create a new D1 database.
-Do NOT retry the old failed build before replacing the broken worker.js.
+This package contains the corrected Worker source and the exact existing D1
+database ID. Do not create a new D1 database.
 
-The previous build error was a JavaScript syntax error in worker.js near the
-default response. This package is rebuilt from the original Worker source and
-adds the static page routing cleanly.
+Next:
+1. Replace worker.js and wrangler.jsonc in GitHub main.
+2. Commit the changes.
+3. Cloudflare Workers Builds should start automatically.
+4. Wait for the build result before testing the production URL.
+
+Do not delete the existing magizh-db database.

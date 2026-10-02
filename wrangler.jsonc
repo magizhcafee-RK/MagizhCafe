@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "magizh-db",
-      "database_id": "PASTE_EXISTING_MAGIZH_DB_ID_HERE"
+      "database_id": "df4995ae-0e06-4c9b-9e4f-c36ea4581734"
     }
   ],
   "r2_buckets": [
