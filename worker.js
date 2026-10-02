@@ -1133,35 +1133,6 @@ export default {
 
 
 
-      // =========================
-      // STATIC PAGE / ASSET ROUTES
-      // =========================
-      // Existing Magizh frontend files stay at the GitHub repository root.
-      if (request.method === "GET" && env.ASSETS) {
-        const pageMap = {
-          "/": "/index.html",
-          "/index.html": "/index.html",
-          "/admin": "/admin.html",
-          "/admin.html": "/admin.html",
-          "/partner": "/partner.html",
-          "/partner.html": "/partner.html",
-          "/partner-offers": "/partner-offers.html",
-          "/partner-offers.html": "/partner-offers.html"
-        };
-
-        const assetPath = pageMap[url.pathname];
-        if (assetPath) {
-          return env.ASSETS.fetch(
-            new Request(new URL(assetPath, request.url), request)
-          );
-        }
-
-        const assetResponse = await env.ASSETS.fetch(request);
-        if (assetResponse.status !== 404) {
-          return assetResponse;
-        }
-      }
-
       // =========================*
 
       // DEFAULT*
