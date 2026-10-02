@@ -24,6 +24,33 @@ export default {
 
     }
 
+    // =========================
+    // INTRO VIDEO FROM R2
+    // =========================
+    // The frontend expects /login-intro.mp4. Keep the video out of
+    // Workers Static Assets and serve it from the existing R2 bucket.
+    if (url.pathname === "/login-intro.mp4" && request.method === "GET") {
+      const object = await env.BUCKET.get("intro/login-intro.mp4");
+
+      if (!object) {
+        return new Response("Intro video not found", {
+          status: 404,
+          headers: {
+            ...corsHeaders,
+            "Cache-Control": "no-store"
+          }
+        });
+      }
+
+      const headers = new Headers(corsHeaders);
+      object.writeHttpMetadata(headers);
+      headers.set("Content-Type", "video/mp4");
+      headers.set("Accept-Ranges", "bytes");
+      headers.set("Cache-Control", "public, max-age=3600");
+
+      return new Response(object.body, { headers });
+    }
+
 
 
     const json = (data, status = 200) =>
