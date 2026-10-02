@@ -16,6 +16,14 @@
       "database_id": "df4995ae-0e06-4c9b-9e4f-c36ea4581734"
     }
   ],
+  "send_email": [
+    {
+      "name": "EMAIL"
+    }
+  ],
+  "vars": {
+    "EMAIL_FROM": "SET_THIS_TO_YOUR_VERIFIED_SENDER_EMAIL"
+  },
   "r2_buckets": [
     {
       "binding": "BUCKET",

@@ -110,102 +110,7 @@ export default {
               updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
           `),
-          env.DB.prepare(`
-            CREATE TABLE IF NOT EXISTS backup_orders (
-              order_id TEXT PRIMARY KEY,
-              customer_id TEXT,
-              order_date TEXT,
-              total_amount REAL DEFAULT 0,
-              data_json TEXT NOT NULL,
-              updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-          `)
         ]);
-      };
-
-      const numberValue = value => {
-        const n = Number(value);
-        return Number.isFinite(n) ? n : 0;
-      };
-
-      const backupCustomers = async value => {
-        if (!value || typeof value !== "object" || Array.isArray(value)) return;
-
-        await ensureBackupTables();
-
-        const statements = Object.entries(value).map(([id, user]) =>
-          env.DB.prepare(`
-            INSERT INTO backup_customers
-              (customer_id, name, mobile, data_json, updated_at)
-            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(customer_id) DO UPDATE SET
-              name = excluded.name,
-              mobile = excluded.mobile,
-              data_json = excluded.data_json,
-              updated_at = CURRENT_TIMESTAMP
-          `).bind(
-            String(id),
-            user?.name || user?.fullName || "",
-            user?.phone || user?.mobile || user?.mobileNumber || "",
-            JSON.stringify(user ?? {})
-          )
-        );
-
-        for (let i = 0; i < statements.length; i += 50) {
-          if (statements.length) {
-            await env.DB.batch(statements.slice(i, i + 50));
-          }
-        }
-      };
-
-      const backupOrders = async value => {
-        if (!Array.isArray(value)) return;
-
-        await ensureBackupTables();
-
-        const statements = [];
-
-        for (const order of value) {
-          const orderId = String(
-            order?.id ||
-            order?.orderId ||
-            `legacy-${crypto.randomUUID()}`
-          );
-
-          // Payment screenshots remain in the current R2 state.
-          // The D1 permanent backup keeps the order/product information.
-          const backupOrder = { ...(order || {}) };
-          delete backupOrder.paymentScreenshot;
-
-          statements.push(
-            env.DB.prepare(`
-              INSERT INTO backup_orders
-                (order_id, customer_id, order_date, total_amount, data_json, updated_at)
-              VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-              ON CONFLICT(order_id) DO UPDATE SET
-                customer_id = excluded.customer_id,
-                order_date = excluded.order_date,
-                total_amount = excluded.total_amount,
-                data_json = excluded.data_json,
-                updated_at = CURRENT_TIMESTAMP
-            `).bind(
-              orderId,
-              order?.userId || order?.customerId || "",
-              order?.date || order?.orderDate || order?.createdAt || "",
-              numberValue(
-                order?.total ??
-                order?.amountPaid ??
-                order?.totalAmount ??
-                order?.amount
-              ),
-              JSON.stringify(backupOrder)
-            )
-          );
-        }
-
-        for (let i = 0; i < statements.length; i += 50) {
-          await env.DB.batch(statements.slice(i, i + 50));
-        }
       };
 
       const saveCurrentState = async (key, value) => {
@@ -230,9 +135,6 @@ export default {
           await backupCustomers(value);
         }
 
-        if (key === "magizhOrders") {
-          await backupOrders(value);
-        }
       };
 
       const loadCurrentState = async key => {
@@ -248,39 +150,57 @@ export default {
 
         // If current R2 state is missing, reconstruct only the
         // permanent customer/order backups from D1.
-        if (key === "magizhUsers" || key === "magizhOrders") {
+        if (key === "magizhUsers") {
           await ensureBackupTables();
-
-          if (key === "magizhUsers") {
-            const result = await env.DB.prepare(`
-              SELECT customer_id, data_json
-              FROM backup_customers
-              ORDER BY updated_at ASC
-            `).all();
-
-            const users = {};
-            for (const row of result.results) {
-              try {
-                users[row.customer_id] = JSON.parse(row.data_json);
-              } catch {}
-            }
-            return users;
-          }
-
           const result = await env.DB.prepare(`
-            SELECT data_json
-            FROM backup_orders
-            ORDER BY order_date ASC, updated_at ASC
+            SELECT customer_id, data_json
+            FROM backup_customers
+            ORDER BY updated_at ASC
           `).all();
 
-          return result.results.map(row => {
-            try { return JSON.parse(row.data_json); }
-            catch { return {}; }
-          });
+          const users = {};
+          for (const row of result.results) {
+            try {
+              users[row.customer_id] = JSON.parse(row.data_json);
+            } catch {}
+          }
+          return users;
         }
 
         return null;
       };
+
+      // =========================
+      // CUSTOMER WELCOME EMAIL
+      // =========================
+      // Email Service must be enabled in Cloudflare and EMAIL_FROM must be
+      // set to a verified sender address on an onboarded domain.
+      if (url.pathname === "/api/email/welcome" && request.method === "POST") {
+        const body = await request.json();
+        const to = String(body.email || "").trim();
+        const name = String(body.name || "Customer").trim() || "Customer";
+        const customerId = String(body.customerId || "").trim();
+
+        if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+          return json({ ok:false, success:false, error:"valid customer email required" }, 400);
+        }
+        if (!env.EMAIL || !env.EMAIL_FROM) {
+          return json({ ok:false, success:false, error:"Email Service is not configured yet" }, 503);
+        }
+
+        try {
+          const result = await env.EMAIL.send({
+            from: env.EMAIL_FROM,
+            to,
+            subject: "Welcome to Magizh Cafe",
+            html: `<div style=\"font-family:Arial,sans-serif;line-height:1.6\"><h2>Welcome to Magizh Cafe, ${name}!</h2><p>Your customer registration is complete.</p>${customerId ? `<p>Customer ID: <strong>${customerId}</strong></p>` : ""}<p>Thank you for joining Magizh Cafe.</p></div>`,
+            text: `Welcome to Magizh Cafe, ${name}! Your customer registration is complete.${customerId ? ` Customer ID: ${customerId}.` : ""} Thank you for joining Magizh Cafe.`
+          });
+          return json({ ok:true, success:true, messageId:result?.messageId || null });
+        } catch (error) {
+          return json({ ok:false, success:false, error:String(error?.message || error) }, 502);
+        }
+      }
 
       // GET /api/state
       // Kept compatible with the existing server-sync.js.
