@@ -1133,14 +1133,11 @@ export default {
 
 
 
-      // =========================*
-
       // =========================
-      // STATIC PAGE ROUTES
+      // STATIC PAGE / ASSET ROUTES
       // =========================
-      // Keep the existing Magizh frontend files in the GitHub root.
-      // API routes above continue to use D1/R2; page routes use Workers Assets.
-      if (request.method === "GET") {
+      // Existing Magizh frontend files stay at the GitHub repository root.
+      if (request.method === "GET" && env.ASSETS) {
         const pageMap = {
           "/": "/index.html",
           "/index.html": "/index.html",
@@ -1153,25 +1150,25 @@ export default {
         };
 
         const assetPath = pageMap[url.pathname];
-        if (assetPath && env.ASSETS) {
+        if (assetPath) {
           return env.ASSETS.fetch(
             new Request(new URL(assetPath, request.url), request)
           );
         }
 
-        if (env.ASSETS) {
-          const assetResponse = await env.ASSETS.fetch(request);
-          if (assetResponse.status !== 404) {
-            return assetResponse;
-          }
+        const assetResponse = await env.ASSETS.fetch(request);
+        if (assetResponse.status !== 404) {
+          return assetResponse;
         }
       }
 
-      // =========================
-      // DEFAULT
-      // =========================
+      // =========================*
 
-      return json({      return json({
+      // DEFAULT*
+
+      // =========================*
+
+      return json({
 
         success: true,
 

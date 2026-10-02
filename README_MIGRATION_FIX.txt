@@ -1,23 +1,15 @@
-MAGIZH CLOUDFLARE BUILD FIX — 2026-10-02
+MAGIZH CLOUDFLARE BUILD FIX
 
-This package fixes the current Workers Build failure caused by the previous
-placeholder assets directory and prepares the actual D1/R2 Worker.
+This is a corrected build-fix package.
 
-IMPORTANT:
-1. Do NOT retry the failed build yet.
-2. In Cloudflare Dashboard open D1 > magizh-db and copy its Database ID.
-3. Replace PASTE_EXISTING_MAGIZH_DB_ID_HERE in wrangler.jsonc with that exact ID.
-4. Commit the updated wrangler.jsonc to GitHub main.
-5. That push will trigger the connected Workers Build.
+1. Keep the existing GitHub frontend files at repository root.
+2. Replace the current worker.js and wrangler.jsonc with these files.
+3. Put the EXISTING magizh-db Database ID into wrangler.jsonc.
+4. Commit to main. Cloudflare Workers Builds will then deploy.
 
-Do not create a new D1 database. The configuration must point to the existing
-magizh-db database.
+Do NOT create a new D1 database.
+Do NOT retry the old failed build before replacing the broken worker.js.
 
-The package uses:
-- existing Magizh Worker API source (D1 + R2)
-- existing root-level frontend files already in GitHub
-- Workers Static Assets from the repository root
-- .assetsignore so server/config/test-data files are not published publicly
-- existing R2 bucket: magizh-products
-
-No existing D1/R2 data is deleted by this package.
+The previous build error was a JavaScript syntax error in worker.js near the
+default response. This package is rebuilt from the original Worker source and
+adds the static page routing cleanly.
