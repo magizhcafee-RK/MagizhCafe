@@ -1,0 +1,8 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "magizh-api-fdb2",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-02",
+  "assets": {"directory":"./public","binding":"ASSETS"},
+  "d1_databases": [{"binding":"DB","database_name":"magizh-db","database_id":"REPLACE_WITH_YOUR_MAGIZH_DB_ID"}]
+}
