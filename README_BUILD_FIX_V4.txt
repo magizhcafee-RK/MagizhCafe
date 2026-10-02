@@ -27,3 +27,4 @@ After committing these files, Cloudflare should run:
   npx wrangler deploy
 
 The asset directory will then be ./public, not the repository root.
+Build trigger 2026-10-02
