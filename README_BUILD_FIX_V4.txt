@@ -28,3 +28,4 @@ After committing these files, Cloudflare should run:
 
 The asset directory will then be ./public, not the repository root.
 Build trigger 2026-10-02
+Cloudflare reconnect build trigger: 2026-10-02 20:00
