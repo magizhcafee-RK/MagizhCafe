@@ -1,35 +1,37 @@
-MAGIZH ↔ AIC B5 BRIDGE FIX v3
-==============================
+MAGIZH B5 LOGIN + 500 COINS FINAL CORRECTION
 
-The previous build reached the AIC bridge but returned HTTP 404 during the
-Supabase app_state lookup. This version keeps the same architecture and
-changes only the AIC read query:
+Upload these files to the existing Magizh Cafe GitHub/Cloudflare project only.
+Do NOT upload to the B5/AIC project.
 
-- AIC remains READ-ONLY.
-- Reads public.app_state and takes the first state row.
-- It no longer assumes app_state.id = 1.
-- members are read from app_state.data.members[]
-- First successful B5 member gets 500 Magizh coins.
-- Same B5 member cannot receive the initial 500 again.
-- Existing Magizh UI, intro video, products, partner sections and D1/R2
-  bindings are preserved.
-
-UPLOAD
-------
-Replace the three existing project files with:
+Replace/add:
+- index.html
 - worker.js
 - magizh-b5-bridge.js
 - build.mjs
+- server-sync.js
 
-Do NOT change AIC Cloud.
-Do NOT change the AIC Supabase data.
-Keep these Production variables in the Magizh Worker:
-- AIC_SUPABASE_URL
-- AIC_SUPABASE_SERVICE_KEY
+This correction does ONLY the agreed B5/login/wallet work:
+1. B5 User uses Mobile + Password. No OTP.
+2. First B5 connection credits 500 Magizh Coins.
+3. First-time popup: Congratulations + 500 Magizh Coins.
+4. Existing B5 users do not receive another 500 on later logins.
+5. Normal Magizh login uses Mobile + Password (no OTP).
+6. B5-connected users can log in normally with the same B5 password.
+7. Profile button shows B5 ID, mobile and Coin Wallet balance.
+8. Product Coin Balance reads the logged-in user's actual local wallet balance.
+9. AIC remains read-only.
+10. Intro video, products, partner offers, product images and overall UI are preserved.
 
-Do not paste the secret key into chat or screenshots.
+IMPORTANT:
+- Keep existing AIC_SUPABASE_URL and AIC_SUPABASE_SERVICE_KEY runtime variables.
+- Do not change the B5/AIC project.
+- Email setup is NOT changed in this correction.
 
-After deployment succeeds, test the same B5 mobile + password once.
-If it still returns 404, the next check is the exact AIC Supabase Project URL
-and whether public.app_state is exposed through Supabase REST; do not change
-any AIC data until that is verified.
+TEST:
+A) New/uncached B5 user -> B5 User -> mobile + password -> login.
+   Expected: Congratulations / 500 Magizh Coins.
+B) Product -> Product Details -> B5 Balance should show 500 Magizh Coins.
+C) Profile -> B5 ID + Coin Wallet should show 500.
+D) Logout -> normal Login -> same mobile + password -> direct login.
+E) Login again with same B5 ID -> NO second 500 credit.
+F) Profile/Product wallet must still show the current balance.

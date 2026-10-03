@@ -415,7 +415,7 @@ export default {
         return json({
           success: true, found: true,
           member: { memberId, name: member.name || "", mobile: member.mobile || "", email: member.email || "", status: member.status || "", level: member.level ?? null, referralId: member.referralId || "" },
-          coin: { grantedNow, grantedCoins, initialCoins: B5_INITIAL_COINS }
+          coin: { grantedNow, grantedCoins, initialCoins: B5_INITIAL_COINS, alreadyGranted: !!existing }
         });
       }
 
@@ -497,7 +497,8 @@ export default {
           coin: {
             grantedNow,
             grantedCoins,
-            initialCoins: B5_INITIAL_COINS
+            initialCoins: B5_INITIAL_COINS,
+            alreadyGranted: !!existing
           }
         });
       }
