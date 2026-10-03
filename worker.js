@@ -25,6 +25,7 @@ export default {
     }
 
 
+
     const json = (data, status = 200) =>
 
       new Response(JSON.stringify(data), {
@@ -41,186 +42,76 @@ export default {
 
       });
 
-    // ============================================================
-    // B5 / BORNTOWIN5 READ-ONLY BRIDGE
-    // ============================================================
-    // Magizh reads B5 membership data from the existing Supabase
-    // app_state. It never writes back to B5.
-    const sha256Hex = async value => {
-      const bytes = new TextEncoder().encode(String(value ?? ""));
-      const digest = await crypto.subtle.digest("SHA-256", bytes);
-      return Array.from(new Uint8Array(digest))
-        .map(b => b.toString(16).padStart(2, "0"))
-        .join("");
-    };
 
-    const aicConfig = () => ({
-      url: String(env.AIC_SUPABASE_URL || "").replace(/\/$/, ""),
-      key: String(
-        env.AIC_SUPABASE_SERVICE_KEY ||
-        env.AIC_SUPABASE_SECRET_KEY ||
-        ""
-      )
-    });
 
-    const aicMembers = async () => {
-      const cfg = aicConfig();
-      if (!cfg.url || !cfg.key) {
-        const e = new Error("AIC bridge is not configured");
-        e.code = "AIC_NOT_CONFIGURED";
-        throw e;
-      }
 
-      const endpoint =
-        `${cfg.url}/rest/v1/app_state?id=eq.1&select=data`;
+      // =========================
+      // AIC / B5 BRIDGE
+      // =========================
+      // Read-only access to the existing AIC Supabase app_state.
+      // Required Worker secrets/vars: AIC_SUPABASE_URL and AIC_SUPABASE_SERVICE_KEY.
+      const B5_INITIAL_COINS = 500;
 
-      const r = await fetch(endpoint, {
-        method: "GET",
-        headers: {
-          apikey: cfg.key,
-          Authorization: `Bearer ${cfg.key}`,
-          Accept: "application/json"
-        }
-      });
-
-      const raw = await r.text();
-      if (!r.ok) {
-        const e = new Error(`AIC lookup failed (${r.status})`);
-        e.code = "AIC_LOOKUP_FAILED";
-        e.status = r.status;
-        throw e;
-      }
-
-      let rows;
-      try { rows = JSON.parse(raw); }
-      catch {
-        const e = new Error("AIC returned invalid data");
-        e.code = "AIC_INVALID_DATA";
-        throw e;
-      }
-
-      const data = rows?.[0]?.data;
-      const members = Array.isArray(data?.members) ? data.members : [];
-      return members;
-    };
-
-    const ensureB5GrantTable = async () => {
-      await env.DB.batch([
-        env.DB.prepare(`
+      const ensureB5GrantTable = async () => {
+        await env.DB.prepare(`
           CREATE TABLE IF NOT EXISTS b5_coin_grants (
-            b5_id TEXT PRIMARY KEY,
-            mobile TEXT NOT NULL,
-            granted_coins INTEGER NOT NULL DEFAULT 500,
-            granted_at TEXT DEFAULT CURRENT_TIMESTAMP
+            member_id TEXT PRIMARY KEY,
+            coins INTEGER NOT NULL DEFAULT 500,
+            granted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
           )
-        `),
-        env.DB.prepare(`
-          CREATE TABLE IF NOT EXISTS b5_wallet_repairs (
-            b5_id TEXT PRIMARY KEY,
-            repaired_at TEXT DEFAULT CURRENT_TIMESTAMP
-          )
-        `)
-      ]);
-    };
-
-    const loadUsersForB5 = async () => {
-      const object = await env.BUCKET.get("state/magizhUsers.json");
-      if (!object) return {};
-      try {
-        const value = JSON.parse(await object.text());
-        return value && typeof value === "object" && !Array.isArray(value)
-          ? value
-          : {};
-      } catch {
-        return {};
-      }
-    };
-
-    const saveUsersForB5 = async users => {
-      await env.BUCKET.put(
-        "state/magizhUsers.json",
-        JSON.stringify(users),
-        { httpMetadata: { contentType: "application/json; charset=utf-8" } }
-      );
-      await backupCustomers(users);
-    };
-
-    const grantB5Coins = async (member, mobile) => {
-      await ensureB5GrantTable();
-
-      let row = await env.DB.prepare(`
-        SELECT b5_id, mobile, granted_coins, granted_at
-        FROM b5_coin_grants
-        WHERE b5_id = ?
-      `).bind(String(member.memberId)).first();
-
-      let firstCredit = false;
-      if (!row) {
-        const inserted = await env.DB.prepare(`
-          INSERT INTO b5_coin_grants (b5_id, mobile, granted_coins)
-          VALUES (?, ?, 500)
-          ON CONFLICT(b5_id) DO NOTHING
-        `).bind(String(member.memberId), String(mobile)).run();
-        firstCredit = Number(inserted?.meta?.changes || 0) > 0;
-        row = await env.DB.prepare(`
-          SELECT b5_id, mobile, granted_coins, granted_at
-          FROM b5_coin_grants
-          WHERE b5_id = ?
-        `).bind(String(member.memberId)).first();
-      }
-
-      const granted = Number(row?.granted_coins || 500);
-      const users = await loadUsersForB5();
-
-      let customerId = Object.keys(users).find(
-        id => String(users[id]?.phone || users[id]?.mobile || "") === String(mobile)
-      );
-      if (!customerId) customerId = String(member.memberId);
-
-      const existing = users[customerId] || {};
-      let currentCoins = Number(existing.coins);
-      if (!Number.isFinite(currentCoins) || currentCoins < 0) currentCoins = 0;
-
-      // The original bridge could record the grant but fail to update the
-      // customer wallet. Repair that exact legacy zero-balance state once.
-      let repaired = false;
-      if (!firstCredit && existing.memberType === "B5" && currentCoins === 0) {
-        const repair = await env.DB.prepare(`
-          INSERT INTO b5_wallet_repairs (b5_id)
-          VALUES (?)
-          ON CONFLICT(b5_id) DO NOTHING
-        `).bind(String(member.memberId)).run();
-        repaired = Number(repair?.meta?.changes || 0) > 0;
-      }
-      if (firstCredit || repaired) currentCoins += granted;
-
-      users[customerId] = {
-        ...existing,
-        id: customerId,
-        name: member.name || existing.name || "B5 Member",
-        phone: String(mobile),
-        mobile: String(mobile),
-        email: member.email || existing.email || "",
-        memberType: "B5",
-        b5Id: String(member.memberId),
-        coins: currentCoins,
-        registeredAt: existing.registeredAt || member.joinedAt || new Date().toISOString()
+        `).run();
       };
 
-      await saveUsersForB5(users);
-
-      return {
-        customerId,
-        coins: currentCoins,
-        firstCredit,
-        grantedCoins: granted
+      const getAicMembers = async () => {
+        const base = String(env.AIC_SUPABASE_URL || "").replace(/\/$/, "");
+        const key = String(env.AIC_SUPABASE_SERVICE_KEY || "");
+        if (!base || !key) throw new Error("AIC bridge is not configured");
+        const response = await fetch(`${base}/rest/v1/app_state?id=eq.1&select=data`, {
+          headers: { apikey: key, Authorization: `Bearer ${key}` }
+        });
+        if (!response.ok) throw new Error(`AIC lookup failed (${response.status})`);
+        const rows = await response.json();
+        const data = rows?.[0]?.data;
+        return Array.isArray(data?.members) ? data.members : [];
       };
-    };
 
+      const findAicMember = async ({ mobile, memberId }) => {
+        const normalizedMobile = String(mobile || "").replace(/\D/g, "");
+        const normalizedId = String(memberId || "").trim().toUpperCase();
+        const members = await getAicMembers();
+        return members.find(member => {
+          const mid = String(member?.memberId || "").trim().toUpperCase();
+          const phone = String(member?.mobile || "").replace(/\D/g, "");
+          return (normalizedId && mid === normalizedId) || (normalizedMobile && phone === normalizedMobile);
+        }) || null;
+      };
 
-
-
-
+      const hexDigest = async (text) => {
+        const bytes = new TextEncoder().encode(String(text ?? ""));
+        const hash = await crypto.subtle.digest("SHA-256", bytes);
+        return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+      };
+      const base64Digest = async (text) => {
+        const bytes = new TextEncoder().encode(String(text ?? ""));
+        const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+        let binary = "";
+        for (const b of hash) binary += String.fromCharCode(b);
+        return btoa(binary);
+      };
+      const verifyAicPassword = async (password, member) => {
+        const supplied = String(password ?? "");
+        const stored = String(member?.passwordHash ?? member?.password ?? "").trim();
+        if (!supplied || !stored) return false;
+        // AIC stores passwordHash. Support the common SHA-256 hex/base64 forms
+        // without exposing the stored hash to the browser.
+        const normalized = stored.replace(/^sha256[:$]/i, "").trim();
+        if (/^[a-f0-9]{64}$/i.test(normalized)) return (await hexDigest(supplied)).toLowerCase() === normalized.toLowerCase();
+        if (/^[A-Za-z0-9+/]{43}={0,2}$/.test(normalized)) return (await base64Digest(supplied)) === normalized;
+        // If the AIC record is a plain password (legacy/test data only), compare
+        // it server-side and never return the stored value.
+        if (!member?.passwordHash && member?.password) return supplied === String(member.password);
+        return false;
+      };
 
       // =========================
       // EXISTING MAGIZH SERVER STATE COMPATIBILITY
@@ -432,93 +323,6 @@ export default {
         return null;
       };
 
-    // R2-backed intro video. Kept here so the approved login intro
-    // remains available even when the Worker code is replaced.
-    if (
-      (url.pathname === "/login-intro.mp4" || url.pathname === "/login-intro.mp4/") &&
-      (request.method === "GET" || request.method === "HEAD")
-    ) {
-      const object = await env.BUCKET.get("intro/login-intro.mp4", {
-        onlyIf: request.headers,
-        range: request.headers
-      });
-      if (!object) {
-        return new Response("Intro video not found", { status: 404, headers: corsHeaders });
-      }
-      const headers = new Headers(corsHeaders);
-      object.writeHttpMetadata(headers);
-      headers.set("Content-Type", "video/mp4");
-      headers.set("Accept-Ranges", "bytes");
-      headers.set("Cache-Control", "public, max-age=3600");
-      headers.set("ETag", object.httpEtag);
-      return new Response(request.method === "HEAD" ? null : object.body, {
-        status: 200,
-        headers
-      });
-    }
-
-    // B5 login + first-time Magizh coin credit.
-    if (url.pathname === "/api/b5/login" && request.method === "POST") {
-      try {
-        const body = await request.json();
-        const mobile = String(body?.mobile || "").trim();
-        const password = String(body?.password || "");
-        if (!/^\d{10}$/.test(mobile)) {
-          return json({ success: false, error: "Mobile Number must be exactly 10 digits" }, 400);
-        }
-        if (!password) {
-          return json({ success: false, error: "Password is required" }, 400);
-        }
-
-        const members = await aicMembers();
-        const member = members.find(
-          m => String(m?.mobile || m?.phone || "").trim() === mobile
-        );
-        if (!member) {
-          return json({ success: false, error: "B5 member not found. Please use your registered B5 mobile number." }, 404);
-        }
-
-        if (String(member.status || "").toLowerCase() === "rejected") {
-          return json({ success: false, error: "This B5 account is not active." }, 403);
-        }
-
-        const passwordHash = String(member.passwordHash || "");
-        if (!passwordHash) {
-          return json({ success: false, error: "B5 password is not set. Please use Forgot Password in B5." }, 401);
-        }
-
-        const suppliedHash = await sha256Hex(password);
-        if (suppliedHash !== passwordHash) {
-          return json({ success: false, error: "Incorrect B5 password" }, 401);
-        }
-
-        const grant = await grantB5Coins(member, mobile);
-        return json({
-          success: true,
-          member: {
-            memberId: member.memberId,
-            name: member.name || "B5 Member",
-            mobile,
-            email: member.email || member.rEmail || "",
-            joinedAt: member.joinedAt || member.registeredAt || null,
-            status: member.status || "ACTIVE"
-          },
-          customerId: grant.customerId,
-          coins: grant.coins,
-          grantedCoins: grant.grantedCoins,
-          firstCredit: grant.firstCredit
-        });
-      } catch (error) {
-        if (error?.code === "AIC_NOT_CONFIGURED") {
-          return json({ success: false, error: "AIC bridge is not configured" }, 503);
-        }
-        if (error?.code === "AIC_LOOKUP_FAILED") {
-          return json({ success: false, error: error.message }, Number(error.status) || 502);
-        }
-        return json({ success: false, error: error?.message || "B5 login failed" }, 500);
-      }
-    }
-
       // GET /api/state
       // Kept compatible with the existing server-sync.js.
       if (url.pathname === "/api/state" && request.method === "GET") {
@@ -596,6 +400,57 @@ export default {
     try {
 
 
+
+      // =========================
+      // B5 MEMBER LOOKUP / LOGIN / INITIAL COIN GRANT
+      // =========================
+      const b5Result = async (member) => {
+        const memberId = String(member?.memberId || "").trim();
+        if (!memberId) throw new Error("B5 member ID missing");
+        await ensureB5GrantTable();
+        const existing = await env.DB.prepare(
+          `SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`
+        ).bind(memberId).first();
+        let grantedNow = false;
+        let grantedCoins = 0;
+        if (!existing) {
+          try {
+            await env.DB.prepare(`INSERT INTO b5_coin_grants (member_id, coins) VALUES (?, ?)`).bind(memberId, B5_INITIAL_COINS).run();
+            grantedNow = true;
+            grantedCoins = B5_INITIAL_COINS;
+          } catch (error) {
+            const afterRace = await env.DB.prepare(
+              `SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`
+            ).bind(memberId).first();
+            if (!afterRace) throw error;
+          }
+        }
+        return {
+          success: true,
+          found: true,
+          member: { memberId, name: member.name || "", mobile: member.mobile || "", email: member.email || "", status: member.status || "", level: member.level ?? null, referralId: member.referralId || "" },
+          coin: { grantedNow, grantedCoins, initialCoins: B5_INITIAL_COINS }
+        };
+      };
+
+      if (url.pathname === "/api/b5/login" && request.method === "POST") {
+        const body = await request.json();
+        const login = String(body?.login || "").trim();
+        const password = String(body?.password || "");
+        if (!login || !password) return json({ success: false, error: "B5 login details are required" }, 400);
+        const member = await findAicMember({ mobile: login, memberId: login });
+        if (!member) return json({ success: false, error: "B5 member not found" }, 404);
+        const valid = await verifyAicPassword(password, member);
+        if (!valid) return json({ success: false, error: "Incorrect B5 password" }, 401);
+        return json(await b5Result(member));
+      }
+
+      if (url.pathname === "/api/b5/lookup" && request.method === "POST") {
+        const body = await request.json();
+        const member = await findAicMember({ mobile: body?.mobile, memberId: body?.memberId });
+        if (!member) return json({ success: false, found: false, error: "B5 member not found" }, 404);
+        return json(await b5Result(member));
+      }
 
       // =========================*
 
@@ -1270,6 +1125,20 @@ export default {
 
 
 
+
+      // =========================
+      // INTRO VIDEO FROM R2
+      // =========================
+      if (url.pathname === "/login-intro.mp4" && request.method === "GET") {
+        const object = await env.BUCKET.get("intro/login-intro.mp4");
+        if (!object) return new Response("Intro video not found", { status: 404, headers: { ...corsHeaders, "Cache-Control": "no-store" } });
+        const headers = new Headers(corsHeaders);
+        object.writeHttpMetadata(headers);
+        headers.set("Content-Type", "video/mp4");
+        headers.set("Accept-Ranges", "bytes");
+        headers.set("Cache-Control", "public, max-age=3600");
+        return new Response(object.body, { headers });
+      }
 
       // =========================*
 
