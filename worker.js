@@ -24,30 +24,6 @@ export default {
 
     }
 
-    // INTRO VIDEO: keep the existing R2 video route intact.
-    // The customer page requests /login-intro.mp4 before showing Home.
-    if (url.pathname === "/login-intro.mp4" && request.method === "GET") {
-      const object = await env.BUCKET.get("intro/login-intro.mp4");
-
-      if (!object) {
-        return new Response("Intro video not found", {
-          status: 404,
-          headers: {
-            ...corsHeaders,
-            "Cache-Control": "no-store"
-          }
-        });
-      }
-
-      const headers = new Headers(corsHeaders);
-      object.writeHttpMetadata(headers);
-      headers.set("Content-Type", "video/mp4");
-      headers.set("Accept-Ranges", "bytes");
-      headers.set("Cache-Control", "public, max-age=3600");
-
-      return new Response(object.body, { headers });
-    }
-
 
 
     const json = (data, status = 200) =>
@@ -68,6 +44,47 @@ export default {
 
 
 
+
+      // =========================
+      // AIC / B5 BRIDGE
+      // =========================
+      // Read-only access to the existing AIC Supabase app_state.
+      // Required Worker secrets/vars: AIC_SUPABASE_URL and AIC_SUPABASE_SERVICE_KEY.
+      const B5_INITIAL_COINS = 500;
+
+      const ensureB5GrantTable = async () => {
+        await env.DB.prepare(`
+          CREATE TABLE IF NOT EXISTS b5_coin_grants (
+            member_id TEXT PRIMARY KEY,
+            coins INTEGER NOT NULL DEFAULT 500,
+            granted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+          )
+        `).run();
+      };
+
+      const getAicMembers = async () => {
+        const base = String(env.AIC_SUPABASE_URL || "").replace(/\/$/, "");
+        const key = String(env.AIC_SUPABASE_SERVICE_KEY || "");
+        if (!base || !key) throw new Error("AIC bridge is not configured");
+        const response = await fetch(`${base}/rest/v1/app_state?id=eq.1&select=data`, {
+          headers: { apikey: key, Authorization: `Bearer ${key}` }
+        });
+        if (!response.ok) throw new Error(`AIC lookup failed (${response.status})`);
+        const rows = await response.json();
+        const data = rows?.[0]?.data;
+        return Array.isArray(data?.members) ? data.members : [];
+      };
+
+      const findAicMember = async ({ mobile, memberId }) => {
+        const normalizedMobile = String(mobile || "").replace(/\D/g, "");
+        const normalizedId = String(memberId || "").trim().toUpperCase();
+        const members = await getAicMembers();
+        return members.find(member => {
+          const mid = String(member?.memberId || "").trim().toUpperCase();
+          const phone = String(member?.mobile || "").replace(/\D/g, "");
+          return (normalizedId && mid === normalizedId) || (normalizedMobile && phone === normalizedMobile);
+        }) || null;
+      };
 
       // =========================
       // EXISTING MAGIZH SERVER STATE COMPATIBILITY
@@ -356,6 +373,42 @@ export default {
     try {
 
 
+
+      // =========================
+      // B5 MEMBER LOOKUP / INITIAL COIN GRANT
+      // =========================
+      if (url.pathname === "/api/b5/lookup" && request.method === "POST") {
+        const body = await request.json();
+        const member = await findAicMember({ mobile: body?.mobile, memberId: body?.memberId });
+        if (!member) return json({ success: false, found: false, error: "B5 member not found" }, 404);
+        const memberId = String(member.memberId || "").trim();
+        if (!memberId) return json({ success: false, found: false, error: "B5 member ID missing" }, 500);
+        await ensureB5GrantTable();
+        const existing = await env.DB.prepare(
+          `SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`
+        ).bind(memberId).first();
+        let grantedNow = false;
+        let grantedCoins = 0;
+        if (!existing) {
+          try {
+            await env.DB.prepare(`INSERT INTO b5_coin_grants (member_id, coins) VALUES (?, ?)`).bind(memberId, B5_INITIAL_COINS).run();
+            grantedNow = true;
+            grantedCoins = B5_INITIAL_COINS;
+          } catch (error) {
+            // Another request may have granted the same member at the same time.
+            // Re-read and treat the existing grant as already claimed.
+            const afterRace = await env.DB.prepare(
+              `SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`
+            ).bind(memberId).first();
+            if (!afterRace) throw error;
+          }
+        }
+        return json({
+          success: true, found: true,
+          member: { memberId, name: member.name || "", mobile: member.mobile || "", email: member.email || "", status: member.status || "", level: member.level ?? null, referralId: member.referralId || "" },
+          coin: { grantedNow, grantedCoins, initialCoins: B5_INITIAL_COINS }
+        });
+      }
 
       // =========================*
 
@@ -1030,6 +1083,20 @@ export default {
 
 
 
+
+      // =========================
+      // INTRO VIDEO FROM R2
+      // =========================
+      if (url.pathname === "/login-intro.mp4" && request.method === "GET") {
+        const object = await env.BUCKET.get("intro/login-intro.mp4");
+        if (!object) return new Response("Intro video not found", { status: 404, headers: { ...corsHeaders, "Cache-Control": "no-store" } });
+        const headers = new Headers(corsHeaders);
+        object.writeHttpMetadata(headers);
+        headers.set("Content-Type", "video/mp4");
+        headers.set("Accept-Ranges", "bytes");
+        headers.set("Cache-Control", "public, max-age=3600");
+        return new Response(object.body, { headers });
+      }
 
       // =========================*
 
