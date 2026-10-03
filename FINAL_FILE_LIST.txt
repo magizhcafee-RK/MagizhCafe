@@ -1,0 +1,8 @@
+FINAL MAGIZH FILE SET
+---------------------
+index.html          -> customer UI/login/B5/coin/account correction
+worker.js           -> AIC read-only bridge, 500-coin grant, intro video route
+server-sync.js      -> explicit Worker API sync
+build.mjs            -> existing static asset build script
+KEEP_VARS_PATCH.txt -> one-line Wrangler persistence fix
+README_FINAL_UPLOAD.txt -> exact upload/test instructions

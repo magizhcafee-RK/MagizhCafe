@@ -73,7 +73,7 @@ body.magizhSplashActive{overflow:hidden;}
 
 <div id="magizhLoginSplash" aria-label="Magizh Cafe intro">
   <video id="magizhLoginIntroVideo" autoplay muted playsinline preload="auto">
-    <source src="/login-intro.mp4" type="video/mp4">
+    <source src="login-intro.mp4" type="video/mp4">
   </video>
 </div>
 
@@ -102,13 +102,11 @@ body.magizhSplashActive{overflow:hidden;}
       Login with your registered mobile number and password.
     </p>
     <input id="loginPhone" inputmode="numeric" maxlength="10" placeholder="Mobile Number">
-    <input id="loginPassword" type="password" maxlength="64" autocomplete="current-password" placeholder="Password">
-    <button id="normalLoginBtn" onclick="normalPasswordLogin()">LOGIN</button>
+    <input id="loginPassword" type="password" maxlength="80" placeholder="Password">
+    <button id="loginBtnMain" type="button" onclick="loginCustomerFinal()">LOGIN</button>
     <div class="loginstatus" id="loginStatus"></div>
-    <div style="text-align:center;margin-top:14px;font-size:10px;color:#786b5e">
-      New to Magizh Cafe?
-    </div>
-    <button class="secondaryLogin" onclick="openRegister()">Register</button>
+    <div style="text-align:center;margin-top:14px;font-size:10px;color:#786b5e">New to Magizh Cafe?</div>
+    <button class="secondaryLogin" type="button" onclick="openRegister()">REGISTER</button>
   </div>
 </div>
 
@@ -117,11 +115,9 @@ body.magizhSplashActive{overflow:hidden;}
     <button class="close" onclick="closeRegister()">×</button>
     <span class="ey">CUSTOMER REGISTRATION</span>
     <h2>Create Your Account</h2>
-    <p style="font-size:10px;color:#786b5e;line-height:1.5">
-      Choose your account type to continue.
-    </p>
-    <button onclick="openNewUserRegister()">New User</button>
-    <button class="secondaryLogin" onclick="openB5Register()">B5 User</button>
+    <p style="font-size:10px;color:#786b5e;line-height:1.5">Choose your account type to continue.</p>
+    <button type="button" onclick="openNewUserRegister()">NEW USER</button>
+    <button class="secondaryLogin" type="button" onclick="openB5Register()">B5 USER LOGIN</button>
   </div>
 </div>
 
@@ -134,8 +130,9 @@ body.magizhSplashActive{overflow:hidden;}
     <input id="regMobile" inputmode="numeric" maxlength="10" placeholder="Mobile Number">
     <input id="regAge" inputmode="numeric" maxlength="3" placeholder="Age">
     <textarea id="regAddress" placeholder="Address" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #d8c9b7;border-radius:10px;margin:6px 0;min-height:75px;font-family:inherit"></textarea>
-    <button onclick="registerNewUserFinal()">Register & Continue</button>
-    <div class="loginstatus">After registration, use your mobile number and password to log in.</div>
+    <input id="regPassword" type="password" maxlength="80" placeholder="Create Password (minimum 6 characters)">
+    <button type="button" onclick="registerNewUserFinal()">REGISTER & CONTINUE</button>
+    <div class="loginstatus">Your account starts with 0 Coins. Use the same mobile number and password to log in later.</div>
   </div>
 </div>
 
@@ -144,13 +141,28 @@ body.magizhSplashActive{overflow:hidden;}
     <button class="close" onclick="closeRegister()">×</button>
     <span class="ey">B5 USER</span>
     <h2>B5 Member Login</h2>
-    <p style="font-size:10px;color:#786b5e;line-height:1.5">
-      Enter your B5 registered mobile number and password.
-    </p>
+    <p style="font-size:10px;color:#786b5e;line-height:1.5">Use the mobile number and password already registered in BORNTOWIN5.</p>
     <input id="b5RegMobile" inputmode="numeric" maxlength="10" placeholder="B5 Registered Mobile Number">
-    <input id="b5RegPassword" type="password" maxlength="64" placeholder="B5 Password">
-    <button id="b5LoginBtn" onclick="verifyB5RegisterLogin()">LOGIN & CONTINUE</button>
+    <input id="b5RegPassword" type="password" maxlength="80" placeholder="B5 Password">
+    <button id="b5LoginBtn" type="button" onclick="b5LoginToMagizh()">LOGIN TO MAGIZH</button>
     <div class="loginstatus" id="b5RegStatus"></div>
+  </div>
+</div>
+
+<div class="loginmodal" id="accountModal">
+  <div class="loginbox">
+    <button class="close" onclick="closeAccount()">×</button>
+    <span class="ey">MY ACCOUNT</span>
+    <h2 id="accountName">My Account</h2>
+    <div class="coinbox" style="margin-top:12px">🪙 <b>Magizh Coins: <span id="accountCoinBalance">0</span></b></div>
+    <div class="notice" style="margin-top:12px">
+      <b>Customer ID:</b> <span id="accountCustomerId">—</span><br>
+      <b>Mobile:</b> <span id="accountMobile">—</span><br>
+      <b>Member Type:</b> <span id="accountMemberType">—</span><br>
+      <span id="accountB5Row" style="display:none"><b>B5 ID:</b> <span id="accountB5Id">—</span></span>
+    </div>
+    <button type="button" onclick="closeAccount();openMyOrders()">MY ORDERS</button>
+    <button class="secondaryLogin" type="button" onclick="closeAccount();logoutCustomer()">LOGOUT</button>
   </div>
 </div>
 
@@ -494,16 +506,27 @@ function closeRegister(){['registerModal','newUserRegisterModal','b5RegisterModa
 function openNewUserRegister(){document.getElementById('registerModal').style.display='none';document.getElementById('newUserRegisterModal').style.display='flex'}
 function openB5Register(){document.getElementById('registerModal').style.display='none';document.getElementById('b5RegisterModal').style.display='flex'}
 
-let demoOtp='';
+async function sha256Hex(value){
+  const data=new TextEncoder().encode(String(value||''));
+  const hash=await crypto.subtle.digest('SHA-256',data);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+const MAGIZH_API_BASE='https://magizh-api-fdb2.magizhcafee.workers.dev';
+async function magizhApi(path,options={}){
+  const opts={...options,headers:{'Content-Type':'application/json',...(options.headers||{})}};
+  const r=await fetch(MAGIZH_API_BASE+path,opts);
+  let d=null; try{d=await r.json()}catch(e){}
+  if(!r.ok)throw new Error(d?.error||('Server error ('+r.status+')'));
+  return d;
+}
 function findUserByPhone(ph){
   const users=getUsers();
   const id=Object.keys(users).find(k=>String(users[k].phone||'')===String(ph));
   if(id)return {id,user:users[id]};
-  // Migrate a legacy demo/current account so the previously supplied test login still works.
   try{
     const legacy=JSON.parse(localStorage.getItem('magizhCurrentUser')||'null');
     const legacyId=localStorage.getItem('magizhCurrentUserId')||legacy?.id;
-    if(legacy && String(legacy.phone||'')===String(ph)){
+    if(legacy && String(legacy.phone||legacy.mobile||'')===String(ph)){
       const lid=legacyId||('MC-'+String(ph).slice(-6));
       users[lid]={...legacy,id:lid,phone:ph,coins:Number(legacy.coins||0)};
       localStorage.setItem('magizhUsers',JSON.stringify(users));
@@ -512,154 +535,111 @@ function findUserByPhone(ph){
   }catch(e){}
   return null;
 }
-function sendDemoOtp(){
-  const ph=document.getElementById('loginPhone').value.trim();
-  if(!/^\d{10}$/.test(ph)){alert('Please enter a valid 10-digit mobile number.');return}
-  const found=findUserByPhone(ph);
-  if(!found){
-    document.getElementById('loginStatus').textContent='Mobile number not registered. Please use Register below first.';
-    return;
-  }
-  demoOtp=String(Math.floor(100000+Math.random()*900000));
-  document.getElementById('loginOtp').style.display='block';
-  document.getElementById('verifyOtpBtn').style.display='block';
-  document.getElementById('sendOtpBtn').textContent='Resend OTP';
-  document.getElementById('loginStatus').textContent='Demo OTP: '+demoOtp+' (production SMS OTP will be connected to the server).';
+function openLogin(){
+  ['registerModal','newUserRegisterModal','b5RegisterModal','accountModal'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none'});
+  const m=document.getElementById('loginModal'); if(m)m.style.display='flex';
+  const st=document.getElementById('loginStatus');if(st)st.textContent='';
 }
-function verifyDemoOtp(){
-  const ph=document.getElementById('loginPhone').value.trim(), otp=document.getElementById('loginOtp').value.trim();
-  if(otp!==demoOtp){alert('Invalid OTP.');return}
-  const found=findUserByPhone(ph);
-  if(!found){alert('Account not found. Please register first.');return}
-  sessionStorage.setItem('magizhCurrentUser',JSON.stringify(found.user));
-  sessionStorage.setItem('magizhCurrentUserId',found.id);
-  localStorage.setItem('magizhCoinWallet',String(Number(found.user.coins||0)));
-  updateAllCoinDisplays(Number(found.user.coins||0));
-  syncCustomerHeader();
+function closeLogin(){const m=document.getElementById('loginModal');if(m)m.style.display='none'}
+function openRegister(){
   closeLogin();
-  alert('Login successful. Welcome to Magizh Cafe!');
+  ['newUserRegisterModal','b5RegisterModal','accountModal'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none'});
+  const m=document.getElementById('registerModal');if(m)m.style.display='flex';
 }
-function registerNewUserFinal(){
+function openNewUserRegister(){document.getElementById('registerModal').style.display='none';document.getElementById('newUserRegisterModal').style.display='flex'}
+function openB5Register(){document.getElementById('registerModal').style.display='none';document.getElementById('b5RegisterModal').style.display='flex';const s=document.getElementById('b5RegStatus');if(s)s.textContent=''}
+function closeRegister(){['registerModal','newUserRegisterModal','b5RegisterModal'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none'})}
+async function loginCustomerFinal(){
+  const ph=document.getElementById('loginPhone').value.trim();
+  const pw=document.getElementById('loginPassword').value;
+  const status=document.getElementById('loginStatus');
+  if(!/^\d{10}$/.test(ph)){if(status)status.textContent='Please enter a valid 10-digit mobile number.';return}
+  if(!pw){if(status)status.textContent='Password is required.';return}
+  if(status)status.textContent='Checking your account…';
+  try{
+    const found=findUserByPhone(ph);
+    if(found && found.user.memberType!=='B5'){
+      if(!found.user.passwordHash){
+        if(status)status.textContent='Password is not set for this account. Please register again with a password.';
+        return;
+      }
+      const hash=await sha256Hex(pw);
+      if(hash!==String(found.user.passwordHash)){if(status)status.textContent='Incorrect password.';return}
+      sessionStorage.setItem('magizhCurrentUser',JSON.stringify(found.user));
+      sessionStorage.setItem('magizhCurrentUserId',found.id);
+      localStorage.setItem('magizhCoinWallet',String(Number(found.user.coins||0)));
+      updateAllCoinDisplays(Number(found.user.coins||0));syncCustomerHeader();closeLogin();
+      alert('Login successful. Welcome to Magizh Cafe!');
+      return;
+    }
+    const result=await magizhApi('/api/b5/login',{method:'POST',body:JSON.stringify({mobile:ph,password:pw})});
+    finishB5CustomerLogin(result,ph);
+  }catch(e){if(status)status.textContent=e.message||'Login failed.'}
+}
+function finishB5CustomerLogin(result,ph){
+  const member=result.member||{};
+  const id=String(result.customerId||member.memberId||('B5-'+ph.slice(-6)));
+  const users=getUsers();
+  const old=users[id]||{};
+  const user={...old,id,name:member.name||old.name||'B5 Member',phone:ph,memberType:'B5',b5Id:member.memberId||id,email:member.email||old.email||'',coins:Number(result.coins||0),registeredAt:old.registeredAt||member.joinedAt||new Date().toISOString()};
+  users[id]=user;
+  localStorage.setItem('magizhUsers',JSON.stringify(users));
+  sessionStorage.setItem('magizhCurrentUser',JSON.stringify(user));
+  sessionStorage.setItem('magizhCurrentUserId',id);
+  localStorage.setItem('magizhCoinWallet',String(user.coins));
+  updateAllCoinDisplays(user.coins);syncCustomerHeader();closeLogin();closeRegister();
+  if(result.firstCredit){
+    alert('Congratulations! 500 Magizh Coins have been credited to your account.');
+  }else{
+    alert('B5 login successful. Your Magizh Coins are already credited.');
+  }
+}
+async function b5LoginToMagizh(){
+  const ph=document.getElementById('b5RegMobile').value.trim();
+  const pw=document.getElementById('b5RegPassword').value;
+  const status=document.getElementById('b5RegStatus');
+  if(!/^\d{10}$/.test(ph)){if(status)status.textContent='Please enter a valid 10-digit mobile number.';return}
+  if(!pw){if(status)status.textContent='Password is required.';return}
+  if(status)status.textContent='Connecting to B5…';
+  const btn=document.getElementById('b5LoginBtn');if(btn)btn.disabled=true;
+  try{const result=await magizhApi('/api/b5/login',{method:'POST',body:JSON.stringify({mobile:ph,password:pw})});finishB5CustomerLogin(result,ph)}
+  catch(e){if(status)status.textContent=e.message||'B5 login failed.'}
+  finally{if(btn)btn.disabled=false}
+}
+async function registerNewUserFinal(){
   const name=document.getElementById('regName').value.trim();
   const phone=document.getElementById('regMobile').value.trim();
   const age=document.getElementById('regAge').value.trim();
   const address=document.getElementById('regAddress').value.trim();
-  if(!name||!/^[0-9]{10}$/.test(phone)||!age||!address){
-    alert('Please complete Name, Mobile Number, Age and Address.');
-    return;
-  }
+  const password=document.getElementById('regPassword').value;
+  if(!name||!/^[0-9]{10}$/.test(phone)||!age||!address||password.length<6){alert('Please complete all fields and create a password of at least 6 characters.');return}
   const users=getUsers();
   const existing=Object.keys(users).find(k=>String(users[k].phone||'')===phone);
-  if(existing){
-    alert('This mobile number is already registered. Please login with your password.');
-    return;
-  }
-
+  if(existing){alert('This mobile number is already registered. Please use LOGIN.');return}
   const id='MC-'+phone.slice(-6);
-
-  // NEW USER: no welcome/free coins.
-  users[id]={
-    id,
-    name,
-    phone,
-    age,
-    address,
-    coins:0,
-    memberType:'Normal',
-    registeredAt:new Date().toISOString()
-  };
-
+  const passwordHash=await sha256Hex(password);
+  users[id]={id,name,phone,age,address,passwordHash,coins:0,memberType:'Normal',registeredAt:new Date().toISOString()};
   localStorage.setItem('magizhUsers',JSON.stringify(users));
   sessionStorage.setItem('magizhCurrentUser',JSON.stringify(users[id]));
   sessionStorage.setItem('magizhCurrentUserId',id);
   localStorage.setItem('magizhCoinWallet','0');
-
-  updateAllCoinDisplays(0);
-  syncCustomerHeader();
-  closeRegister();
-
+  updateAllCoinDisplays(0);syncCustomerHeader();closeRegister();
   alert('Registration successful. Your account has been created with 0 Coins.');
 }
-function normalPasswordLogin(){
-  const ph=document.getElementById('loginPhone').value.trim();
-  const pw=document.getElementById('loginPassword').value;
-  const status=document.getElementById('loginStatus');
-  if(!/^\\d{10}$/.test(ph)){
-    status.textContent='Please enter a valid 10-digit mobile number.';
-    return;
-  }
-  if(!pw){
-    status.textContent='Please enter your password.';
-    return;
-  }
-  const found=findUserByPhone(ph);
-  if(!found){
-    status.textContent='Mobile number not registered. Please use Register or B5 User first.';
-    return;
-  }
-  const saved=String(found.user.password||'');
-  if(!saved){
-    status.textContent='Password is not set for this account. Please connect through B5 User first.';
-    return;
-  }
-  if(pw!==saved){
-    status.textContent='Incorrect password.';
-    return;
-  }
-  sessionStorage.setItem('magizhCurrentUser',JSON.stringify(found.user));
-  sessionStorage.setItem('magizhCurrentUserId',found.id);
-  localStorage.setItem('magizhCoinWallet',String(Number(found.user.coins||0)));
-  updateAllCoinDisplays(Number(found.user.coins||0));
-  syncCustomerHeader();
-  closeLogin();
-  alert('Login successful. Welcome to Magizh Cafe!');
+function openAccount(){
+  const u=getLoggedUser();
+  if(!u){openLogin();return}
+  const el=id=>document.getElementById(id);
+  if(el('accountName'))el('accountName').textContent=u.name||'My Account';
+  if(el('accountCustomerId'))el('accountCustomerId').textContent=u.id||'—';
+  if(el('accountMobile'))el('accountMobile').textContent=u.phone||u.mobile||'—';
+  if(el('accountMemberType'))el('accountMemberType').textContent=u.memberType||'Normal';
+  if(el('accountCoinBalance'))el('accountCoinBalance').textContent=String(getWallet());
+  const row=el('accountB5Row');if(row)row.style.display=u.memberType==='B5'?'inline':'none';
+  if(el('accountB5Id'))el('accountB5Id').textContent=u.b5Id||u.id||'—';
+  if(el('accountModal'))el('accountModal').style.display='flex';
 }
-
-async function verifyB5RegisterLogin(){
-  const ph=document.getElementById('b5RegMobile').value.trim();
-  const pw=document.getElementById('b5RegPassword').value;
-  const status=document.getElementById('b5RegStatus');
-  if(!/^\d{10}$/.test(ph)){status.textContent='Please enter a valid 10-digit B5 mobile number.';return}
-  if(!pw){status.textContent='Please enter your B5 password.';return}
-  status.textContent='Checking B5 account...';
-  try{
-    const r=await fetch('https://magizh-api-fdb2.magizhcafee.workers.dev/api/b5/login',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({mobile:ph,password:pw})
-    });
-    const d=await r.json().catch(()=>({}));
-    if(!r.ok || !d.success) throw new Error(d.error||'B5 member account not found.');
-
-    const users=getUsers();
-    const id=d.member.id||('B5-'+ph.slice(-6));
-    const existing=users[id]||{};
-    const coinInfo=d.coin||{};
-    const balance=Number(
-      coinInfo.balance ??
-      coinInfo.coins ??
-      d.coins ??
-      existing.coins ??
-      0
-    );
-    users[id]={...existing,...d.member,id,phone:ph,memberType:'B5',password:pw,coins:balance};
-    localStorage.setItem('magizhUsers',JSON.stringify(users));
-    sessionStorage.setItem('magizhCurrentUser',JSON.stringify(users[id]));
-    sessionStorage.setItem('magizhCurrentUserId',id);
-    localStorage.setItem('magizhCoinWallet',String(balance));
-    updateAllCoinDisplays(balance);
-    syncCustomerHeader();
-    closeRegister();
-    await (window.magizhSyncNow?window.magizhSyncNow():Promise.resolve());
-    if(coinInfo.grantedNow){
-      alert('🎉 Congratulations!\\n\\nYou have been credited with 500 Magizh Coins.');
-    }else{
-      alert('B5 login successful. Your Magizh Coins are already credited.');
-    }
-  }catch(e){
-    status.textContent=e.message||'B5 member account not found.';
-  }
-}
+function closeAccount(){const m=document.getElementById('accountModal');if(m)m.style.display='none'}
 async function completePaymentAndPlace(event){
   if(event){
     event.preventDefault();
@@ -792,7 +772,7 @@ function removeDuplicateLoginButtons(){
   });
 }
 function updateFooter(){const s=JSON.parse(localStorage.getItem('magizhSettings')||'{}');const a=document.getElementById('footerAddress');if(a)a.textContent=s.address||'Traditional food, thoughtfully made';[['footerInstagram','instagram'],['footerFacebook','facebook'],['footerWhatsApp','whatsapp']].forEach(([id,k])=>{const e=document.getElementById(id);if(e&&s[k])e.href=s[k]});}
-renderCategories();renderProducts();updateCart();updateAllCoinDisplays(getWallet());syncCustomerHeader();updateFooter();removeDuplicateLoginButtons();
+renderCategories();renderProducts();updateCart();updateAllCoinDisplays(getWallet());updateFooter();removeDuplicateLoginButtons();
 </script>
 
 
@@ -811,7 +791,7 @@ function syncCustomerHeader(){
     const reward=document.getElementById('welcomeReward');
     if(reward)reward.style.display='none';
     if(coin)coin.style.display='none';
-    if(login)login.style.display='block';
+    if(login){login.style.display='block';login.textContent='Login';login.onclick=openLogin;}
     if(orders)orders.style.display='none';
     if(cartBtn)cartBtn.style.display='none';
     if(logout)logout.style.display='none';
@@ -830,7 +810,7 @@ function syncCustomerHeader(){
     if(b)b.textContent=String(balance);
   }
 
-  if(login)login.style.display='none';
+  if(login){login.style.display='block';login.textContent='Account';login.onclick=openAccount;}
   if(orders)orders.style.display='block';
   if(cartBtn)cartBtn.style.display='block';
   if(logout)logout.style.display='block';
@@ -873,7 +853,7 @@ window.addEventListener('magizhServerSync',function(){
   }catch(e){console.error('Customer server sync render error',e);}
 });
 </script>
-<script>window.MAGIZH_SYNC_KEYS=['magizhProducts','magizhCategories','magizhSettings','magizhUsers','magizhB5','magizhOrders','magizhCoinWallet'];</script><script src="/server-sync.js"></script>
+<script>window.MAGIZH_SYNC_KEYS=['magizhProducts','magizhCategories','magizhSettings','magizhUsers','magizhB5','magizhOrders','magizhCoinWallet'];</script><script src="server-sync.js"></script>
 
 <script id="magizhLoginSplashJS">
 (function(){

@@ -1,0 +1,16 @@
+FINAL CLOUDFLARE WRANGLER PATCH
+================================
+
+In the EXISTING wrangler.toml / wrangler.jsonc used by this Worker, add:
+
+TOML:
+keep_vars = true
+
+JSON/JSONC:
+"keep_vars": true,
+
+IMPORTANT:
+- Add this to the EXISTING config. Do NOT replace the whole config with a new minimal config.
+- Do NOT remove the existing D1, R2, Email Service, or other bindings.
+- Do NOT put AIC_SUPABASE_SERVICE_KEY into the Wrangler file.
+- AIC_SUPABASE_SERVICE_KEY must remain a Cloudflare Secret.
