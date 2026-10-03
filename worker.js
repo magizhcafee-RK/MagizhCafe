@@ -66,10 +66,19 @@ export default {
         const base = String(env.AIC_SUPABASE_URL || "").replace(/\/$/, "");
         const key = String(env.AIC_SUPABASE_SERVICE_KEY || "");
         if (!base || !key) throw new Error("AIC bridge is not configured");
-        const response = await fetch(`${base}/rest/v1/app_state?id=eq.1&select=data`, {
-          headers: { apikey: key, Authorization: `Bearer ${key}` }
+        // Do not assume the app_state row uses id=1. The AIC app stores
+        // members inside app_state.data.members, so read the first state row.
+        const response = await fetch(`${base}/rest/v1/app_state?select=data&limit=1`, {
+          headers: {
+            apikey: key,
+            Authorization: `Bearer ${key}`,
+            Accept: "application/json"
+          }
         });
-        if (!response.ok) throw new Error(`AIC lookup failed (${response.status})`);
+        if (!response.ok) {
+          const detail = await response.text().catch(() => "");
+          throw new Error(`AIC lookup failed (${response.status})${detail ? `: ${detail.slice(0, 180)}` : ""}`);
+        }
         const rows = await response.json();
         const data = rows?.[0]?.data;
         return Array.isArray(data?.members) ? data.members : [];
