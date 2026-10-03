@@ -415,7 +415,7 @@ export default {
         return json({
           success: true, found: true,
           member: { memberId, name: member.name || "", mobile: member.mobile || "", email: member.email || "", status: member.status || "", level: member.level ?? null, referralId: member.referralId || "" },
-          coin: { grantedNow, grantedCoins, initialCoins: B5_INITIAL_COINS, alreadyGranted: !!existing }
+          coin: { grantedNow, grantedCoins, initialCoins: B5_INITIAL_COINS }
         });
       }
 
@@ -483,6 +483,11 @@ export default {
           }
         }
 
+        const finalGrant = await env.DB.prepare(
+          `SELECT coins FROM b5_coin_grants WHERE member_id = ?`
+        ).bind(memberId).first();
+        const balance = Number(finalGrant?.coins || 0);
+
         return json({
           success: true,
           member: {
@@ -497,8 +502,8 @@ export default {
           coin: {
             grantedNow,
             grantedCoins,
-            initialCoins: B5_INITIAL_COINS,
-            alreadyGranted: !!existing
+            balance,
+            initialCoins: B5_INITIAL_COINS
           }
         });
       }
