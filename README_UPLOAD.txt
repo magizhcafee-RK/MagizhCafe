@@ -1,9 +1,7 @@
-UPLOAD THIS FILE: worker.js
+BLACK SCREEN FIX — INTRO VIDEO ONLY
 
-This is the D1 customer-backup correction for Magizh.
-Replace ONLY the existing Worker source file named worker.js.
-Do not replace index.html, server-sync.js, partner files, slider files, product files, images, or videos.
+Replace the current worker.js with this file.
+This correction restores the existing R2 route:
+GET /login-intro.mp4 -> R2 intro/login-intro.mp4
 
-After deployment, register ONE NEW test customer and check:
-Cloudflare > D1 > magizh-db > backup_customers.
-The new customer row should appear.
+No customer data, D1 tables, partner offers, slider images, product images, or frontend UI are changed.

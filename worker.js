@@ -24,6 +24,30 @@ export default {
 
     }
 
+    // INTRO VIDEO: keep the existing R2 video route intact.
+    // The customer page requests /login-intro.mp4 before showing Home.
+    if (url.pathname === "/login-intro.mp4" && request.method === "GET") {
+      const object = await env.BUCKET.get("intro/login-intro.mp4");
+
+      if (!object) {
+        return new Response("Intro video not found", {
+          status: 404,
+          headers: {
+            ...corsHeaders,
+            "Cache-Control": "no-store"
+          }
+        });
+      }
+
+      const headers = new Headers(corsHeaders);
+      object.writeHttpMetadata(headers);
+      headers.set("Content-Type", "video/mp4");
+      headers.set("Accept-Ranges", "bytes");
+      headers.set("Cache-Control", "public, max-age=3600");
+
+      return new Response(object.body, { headers });
+    }
+
 
 
     const json = (data, status = 200) =>
@@ -102,17 +126,11 @@ export default {
       };
 
       const backupCustomers = async value => {
-        // server-sync.js sends localStorage values as JSON strings.
-        // Normalize that payload before writing the permanent D1 backup.
-        let users = value;
-        if (typeof users === "string") {
-          try { users = JSON.parse(users); } catch { users = null; }
-        }
-        if (!users || typeof users !== "object" || Array.isArray(users)) return;
+        if (!value || typeof value !== "object" || Array.isArray(value)) return;
 
         await ensureBackupTables();
 
-        const statements = Object.entries(users).map(([id, user]) =>
+        const statements = Object.entries(value).map(([id, user]) =>
           env.DB.prepare(`
             INSERT INTO backup_customers
               (customer_id, name, mobile, data_json, updated_at)
@@ -138,19 +156,13 @@ export default {
       };
 
       const backupOrders = async value => {
-        // server-sync.js sends localStorage values as JSON strings.
-        // Normalize that payload before writing the permanent D1 backup.
-        let orders = value;
-        if (typeof orders === "string") {
-          try { orders = JSON.parse(orders); } catch { orders = null; }
-        }
-        if (!Array.isArray(orders)) return;
+        if (!Array.isArray(value)) return;
 
         await ensureBackupTables();
 
         const statements = [];
 
-        for (const order of orders) {
+        for (const order of value) {
           const orderId = String(
             order?.id ||
             order?.orderId ||
