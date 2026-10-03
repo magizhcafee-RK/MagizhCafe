@@ -148,7 +148,7 @@ body.magizhSplashActive{overflow:hidden;}
     <p style="font-size:10px;color:#786b5e;line-height:1.5">
       Enter your B5 registered mobile number and password.
     </p>
-    <input id="b5RegMobile" inputmode="numeric" maxlength="10" placeholder="B5 Registered Mobile Number">
+    <input id="b5RegMobile" inputmode="numeric" maxlength="10" placeholder="B5 Member ID / Registered Mobile Number">
     <input id="b5RegPassword" type="password" maxlength="64" placeholder="B5 Password">
     <button id="b5LoginBtn" onclick="verifyB5RegisterLogin()">LOGIN & CONTINUE</button>
     <div class="loginstatus" id="b5RegStatus"></div>
@@ -585,7 +585,7 @@ async function verifyB5RegisterLogin(){
   const ph=document.getElementById('b5RegMobile').value.trim();
   const pw=document.getElementById('b5RegPassword').value;
   const status=document.getElementById('b5RegStatus');
-  if(!/^\d{10}$/.test(ph)){status.textContent='Please enter a valid 10-digit B5 mobile number.';return}
+  if(!ph){status.textContent='Please enter your B5 Member ID or registered mobile number.';return}
   if(!pw){status.textContent='Please enter your B5 password.';return}
   status.textContent='Checking B5 account...';
   try{
