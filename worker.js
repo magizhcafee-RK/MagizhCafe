@@ -66,29 +66,22 @@ export default {
         const base = String(env.AIC_SUPABASE_URL || "").replace(/\/$/, "");
         const key = String(env.AIC_SUPABASE_SERVICE_KEY || "");
         if (!base || !key) throw new Error("AIC bridge is not configured");
-        const response = await fetch(`${base}/rest/v1/app_state?id=eq.1&select=data`, {
-          headers: { apikey: key, Authorization: `Bearer ${key}` }
+        // Do not assume the app_state row uses id=1. The AIC app stores
+        // members inside app_state.data.members, so read the first state row.
+        const response = await fetch(`${base}/rest/v1/app_state?select=data&limit=1`, {
+          headers: {
+            apikey: key,
+            Authorization: `Bearer ${key}`,
+            Accept: "application/json"
+          }
         });
-        if (!response.ok) throw new Error(`AIC lookup failed (${response.status})`);
+        if (!response.ok) {
+          const detail = await response.text().catch(() => "");
+          throw new Error(`AIC lookup failed (${response.status})${detail ? `: ${detail.slice(0, 180)}` : ""}`);
+        }
         const rows = await response.json();
         const data = rows?.[0]?.data;
         return Array.isArray(data?.members) ? data.members : [];
-      };
-
-      const hashB5Password = async (value) => {
-        const bytes = new TextEncoder().encode(String(value || ""));
-        const digest = await crypto.subtle.digest("SHA-256", bytes);
-        return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
-      };
-
-      const ensureB5WalletTable = async () => {
-        await env.DB.prepare(`
-          CREATE TABLE IF NOT EXISTS b5_coin_wallets (
-            member_id TEXT PRIMARY KEY,
-            coins INTEGER NOT NULL DEFAULT 0,
-            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-          )
-        `).run();
       };
 
       const findAicMember = async ({ mobile, memberId }) => {
@@ -393,47 +386,6 @@ export default {
       // =========================
       // B5 MEMBER LOOKUP / INITIAL COIN GRANT
       // =========================
-      if (url.pathname === "/api/b5/login" && request.method === "POST") {
-        const body = await request.json();
-        const login = String(body?.mobile || body?.memberId || "").trim();
-        const password = String(body?.password || "");
-        if (!login || !password) return json({ success:false, error:"B5 mobile/member ID and password are required" },400);
-        const member = await findAicMember({ mobile: login, memberId: login });
-        if (!member) return json({ success:false, error:"B5 member account not found" },404);
-        if (!member.passwordHash) return json({ success:false, error:"B5 password is not set. Please use Forgot Password in B5." },401);
-        const suppliedHash = await hashB5Password(password);
-        if (suppliedHash !== String(member.passwordHash)) return json({ success:false, error:"Incorrect B5 password" },401);
-        const memberId = String(member.memberId || "").trim();
-        if (!memberId) return json({ success:false, error:"B5 member ID missing" },500);
-        await ensureB5GrantTable();
-        await ensureB5WalletTable();
-        const existing = await env.DB.prepare(`SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`).bind(memberId).first();
-        let grantedNow = false;
-        let walletCreated = false;
-        if (!existing) {
-          try {
-            await env.DB.prepare(`INSERT INTO b5_coin_grants (member_id, coins) VALUES (?, ?)`).bind(memberId, B5_INITIAL_COINS).run();
-            grantedNow = true;
-          } catch (error) {
-            const race = await env.DB.prepare(`SELECT member_id FROM b5_coin_grants WHERE member_id = ?`).bind(memberId).first();
-            if (!race) throw error;
-          }
-        }
-        let wallet = await env.DB.prepare(`SELECT member_id, coins FROM b5_coin_wallets WHERE member_id = ?`).bind(memberId).first();
-        if (!wallet) {
-          const initial = B5_INITIAL_COINS;
-          await env.DB.prepare(`INSERT INTO b5_coin_wallets (member_id, coins) VALUES (?, ?)`).bind(memberId, initial).run();
-          wallet = { member_id: memberId, coins: initial };
-          walletCreated = true;
-        }
-        const walletBalance = Math.max(0, Number(wallet.coins) || 0);
-        return json({
-          success:true,
-          member:{ memberId, name:member.name||"", mobile:member.mobile||"", email:member.email||"", status:member.status||"", level:member.level??null, referralId:member.referralId||"", place:member.place||"" },
-          coin:{ grantedNow, walletCreated, grantedCoins:grantedNow?B5_INITIAL_COINS:0, initialCoins:B5_INITIAL_COINS, walletBalance }
-        });
-      }
-
       if (url.pathname === "/api/b5/lookup" && request.method === "POST") {
         const body = await request.json();
         const member = await findAicMember({ mobile: body?.mobile, memberId: body?.memberId });
@@ -441,31 +393,124 @@ export default {
         const memberId = String(member.memberId || "").trim();
         if (!memberId) return json({ success: false, found: false, error: "B5 member ID missing" }, 500);
         await ensureB5GrantTable();
-        await ensureB5WalletTable();
-        const existing = await env.DB.prepare(`SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`).bind(memberId).first();
+        const existing = await env.DB.prepare(
+          `SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`
+        ).bind(memberId).first();
         let grantedNow = false;
+        let grantedCoins = 0;
         if (!existing) {
           try {
             await env.DB.prepare(`INSERT INTO b5_coin_grants (member_id, coins) VALUES (?, ?)`).bind(memberId, B5_INITIAL_COINS).run();
             grantedNow = true;
+            grantedCoins = B5_INITIAL_COINS;
           } catch (error) {
-            const race = await env.DB.prepare(`SELECT member_id FROM b5_coin_grants WHERE member_id = ?`).bind(memberId).first();
-            if (!race) throw error;
+            // Another request may have granted the same member at the same time.
+            // Re-read and treat the existing grant as already claimed.
+            const afterRace = await env.DB.prepare(
+              `SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`
+            ).bind(memberId).first();
+            if (!afterRace) throw error;
           }
         }
-        let wallet = await env.DB.prepare(`SELECT member_id, coins FROM b5_coin_wallets WHERE member_id = ?`).bind(memberId).first();
-        if (!wallet) {
-          await env.DB.prepare(`INSERT INTO b5_coin_wallets (member_id, coins) VALUES (?, ?)`).bind(memberId, B5_INITIAL_COINS).run();
-          wallet = { coins:B5_INITIAL_COINS };
+        return json({
+          success: true, found: true,
+          member: { memberId, name: member.name || "", mobile: member.mobile || "", email: member.email || "", status: member.status || "", level: member.level ?? null, referralId: member.referralId || "" },
+          coin: { grantedNow, grantedCoins, initialCoins: B5_INITIAL_COINS }
+        });
+      }
+
+      // =========================
+      // B5 MEMBER LOGIN / AIC AUTHENTICATION
+      // =========================
+      // Magizh authenticates the existing AIC B5 member read-only.
+      // The AIC record is never modified.
+      if (url.pathname === "/api/b5/login" && request.method === "POST") {
+        const body = await request.json();
+        const mobile = String(body?.mobile || "").replace(/\D/g, "");
+        const password = String(body?.password || "");
+        if (!/^\d{10}$/.test(mobile)) {
+          return json({ success: false, error: "Invalid mobile number" }, 400);
         }
-        return json({ success:true, found:true, member:{ memberId, name:member.name||"", mobile:member.mobile||"", email:member.email||"", status:member.status||"", level:member.level??null, referralId:member.referralId||"", place:member.place||"" }, coin:{ grantedNow, grantedCoins:grantedNow?B5_INITIAL_COINS:0, initialCoins:B5_INITIAL_COINS, walletBalance:Math.max(0,Number(wallet.coins)||0) } });
+        if (!password) {
+          return json({ success: false, error: "Password is required" }, 400);
+        }
+
+        const member = await findAicMember({ mobile });
+        if (!member) {
+          return json({ success: false, error: "B5 member not found" }, 404);
+        }
+
+        const storedHash = String(member?.passwordHash || "").trim().toLowerCase();
+        if (!storedHash) {
+          return json({ success: false, error: "B5 password is not set" }, 401);
+        }
+
+        const encoded = new TextEncoder().encode(password);
+        const digest = await crypto.subtle.digest("SHA-256", encoded);
+        const suppliedHash = Array.from(new Uint8Array(digest))
+          .map(b => b.toString(16).padStart(2, "0"))
+          .join("")
+          .toLowerCase();
+
+        if (suppliedHash !== storedHash) {
+          return json({ success: false, error: "Incorrect password" }, 401);
+        }
+
+        const memberId = String(member.memberId || "").trim();
+        if (!memberId) {
+          return json({ success: false, error: "B5 member ID missing" }, 500);
+        }
+
+        await ensureB5GrantTable();
+        const existing = await env.DB.prepare(
+          `SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`
+        ).bind(memberId).first();
+
+        let grantedNow = false;
+        let grantedCoins = 0;
+        if (!existing) {
+          try {
+            await env.DB.prepare(
+              `INSERT INTO b5_coin_grants (member_id, coins) VALUES (?, ?)`
+            ).bind(memberId, B5_INITIAL_COINS).run();
+            grantedNow = true;
+            grantedCoins = B5_INITIAL_COINS;
+          } catch (error) {
+            const afterRace = await env.DB.prepare(
+              `SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`
+            ).bind(memberId).first();
+            if (!afterRace) throw error;
+          }
+        }
+
+        const finalGrant = await env.DB.prepare(
+          `SELECT coins FROM b5_coin_grants WHERE member_id = ?`
+        ).bind(memberId).first();
+        const balance = Number(finalGrant?.coins || 0);
+
+        return json({
+          success: true,
+          member: {
+            memberId,
+            name: member.name || "",
+            mobile: member.mobile || mobile,
+            email: member.email || member.rEmail || "",
+            status: member.status || "",
+            level: member.level ?? null,
+            referralId: member.referralId || ""
+          },
+          coin: {
+            grantedNow,
+            grantedCoins,
+            balance,
+            initialCoins: B5_INITIAL_COINS
+          }
+        });
       }
 
       // =========================*
 
-      // HEALTH CHECK*
-
-      // =========================*
+      // HEALTH CHECK*\n\n      // =========================*
 
       if (url.pathname === "/api/health") {
 

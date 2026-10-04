@@ -1,35 +1,25 @@
-MAGIZH CAFE FINAL PROFILE + B5 FIX
+MAGIZH FINAL PROFILE + B5 COIN FIX
 
-This package is intentionally FLAT: all upload files are in this single folder.
-Do not create another folder inside it.
+IMPORTANT: This ZIP is FLAT. There is NO extra parent folder inside the ZIP.
+Upload the files directly into the existing MagizhCafe repository root.
 
-Included corrections:
-1. Logged-in customer gets Profile button in the TOP header.
-2. Footer Profile button is removed.
-3. Profile shows Name, Phone, Customer ID, B5 ID, and current Magizh Coins.
-4. Profile can update Name, Email, Address and PIN code.
-5. Saved profile address is automatically loaded at checkout and remains editable for a different order.
-6. B5 login is Mobile/Member ID + Password only. No OTP UI is used.
-7. B5 login is verified server-side against the AIC read-only member data using SHA-256 password verification.
-8. First successful B5 connection gets 500 Magizh Coins.
-9. Initial 500-coin grant is protected against duplicate grants by D1.
-10. B5 wallet balance is stored server-side in D1 so an existing grant does not incorrectly display 0.
-11. AIC data is read-only from Magizh.
-12. wrangler.jsonc includes keep_vars=true so Dashboard runtime variables are not removed by Wrangler deploy.
-13. AIC_SUPABASE_SERVICE_KEY must remain a Cloudflare Secret. Do NOT put the actual key in GitHub or this package.
-14. Existing intro-video R2 route, products, images, partner offers and current UI are preserved.
+Included final corrections:
+1. Existing top Login button is preserved.
+2. Logged-in header now shows: My Orders | Profile | View Cart | Logout.
+3. Any old footer Profile button is removed.
+4. Profile shows/updates Name, Mobile, Customer ID, B5 ID, PIN Code, Address and current Magizh Coins.
+5. Saved profile address is automatically filled into checkout; customer can change it for that order without changing the saved profile.
+6. B5 login uses Mobile + Password only. No OTP UI is used.
+7. B5/AIC is read-only from Magizh.
+8. First successful B5 connection credits 500 Magizh Coins server-side.
+9. Duplicate protection prevents a second 500-coin grant for the same B5 member ID.
+10. The B5 balance returned by the server is written to the Magizh Coin Wallet.
+11. B5 passwords are not stored in Magizh browser storage; normal login can re-verify B5 users against AIC.
+12. Intro video route and existing product/UI flow are preserved.
 
-Required Cloudflare runtime settings:
-- AIC_SUPABASE_URL = existing AIC Supabase project URL (Variable)
-- AIC_SUPABASE_SERVICE_KEY = existing AIC Supabase service key (Secret)
-- EMAIL_FROM = existing verified sender email (Variable)
-- R2 binding: BUCKET -> magizh-products
-- D1 binding: DB -> magizh-db
-- Email binding: EMAIL -> existing Email Service binding
+CLOUDFLARE VARIABLES:
+- AIC_SUPABASE_URL: Runtime variable
+- AIC_SUPABASE_SERVICE_KEY: Secret (do NOT put it in this ZIP)
+- Keep the existing D1, R2 and Email Service bindings.
 
-Deploy:
-- GitHub/Workers Build root should be this folder's contents.
-- Build command: node build.mjs
-- Deploy command: npx wrangler deploy
-
-Do not upload the AIC service key into this folder.
+Do not upload AIC/Supabase data into this project.
