@@ -75,6 +75,25 @@ export default {
         return Array.isArray(data?.members) ? data.members : [];
       };
 
+      const toHex = bytes => Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, "0")).join("");
+      const toBase64 = bytes => { let s=""; for (const b of new Uint8Array(bytes)) s += String.fromCharCode(b); return btoa(s); };
+      const hashPassword = async (password, algorithm) => {
+        const digest = await crypto.subtle.digest(algorithm, new TextEncoder().encode(String(password || "")));
+        return { hex: toHex(digest), base64: toBase64(digest) };
+      };
+      const verifyAicPassword = async (password, storedHash) => {
+        const stored = String(storedHash || "").trim();
+        if (!stored) return false;
+        // Support legacy plain-text records only if an old AIC record really contains one.
+        if (stored === String(password || "")) return true;
+        const normalized = stored.toLowerCase().replace(/^sha(256|512)[:$-]?/, "");
+        for (const algorithm of ["SHA-256", "SHA-512"]) {
+          const h = await hashPassword(password, algorithm);
+          if (normalized === h.hex.toLowerCase() || stored === h.base64) return true;
+        }
+        return false;
+      };
+
       const findAicMember = async ({ mobile, memberId }) => {
         const normalizedMobile = String(mobile || "").replace(/\D/g, "");
         const normalizedId = String(memberId || "").trim().toUpperCase();
@@ -84,33 +103,6 @@ export default {
           const phone = String(member?.mobile || "").replace(/\D/g, "");
           return (normalizedId && mid === normalizedId) || (normalizedMobile && phone === normalizedMobile);
         }) || null;
-      };
-
-      const hexDigest = async (text) => {
-        const bytes = new TextEncoder().encode(String(text ?? ""));
-        const hash = await crypto.subtle.digest("SHA-256", bytes);
-        return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
-      };
-      const base64Digest = async (text) => {
-        const bytes = new TextEncoder().encode(String(text ?? ""));
-        const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-        let binary = "";
-        for (const b of hash) binary += String.fromCharCode(b);
-        return btoa(binary);
-      };
-      const verifyAicPassword = async (password, member) => {
-        const supplied = String(password ?? "");
-        const stored = String(member?.passwordHash ?? member?.password ?? "").trim();
-        if (!supplied || !stored) return false;
-        // AIC stores passwordHash. Support the common SHA-256 hex/base64 forms
-        // without exposing the stored hash to the browser.
-        const normalized = stored.replace(/^sha256[:$]/i, "").trim();
-        if (/^[a-f0-9]{64}$/i.test(normalized)) return (await hexDigest(supplied)).toLowerCase() === normalized.toLowerCase();
-        if (/^[A-Za-z0-9+/]{43}={0,2}$/.test(normalized)) return (await base64Digest(supplied)) === normalized;
-        // If the AIC record is a plain password (legacy/test data only), compare
-        // it server-side and never return the stored value.
-        if (!member?.passwordHash && member?.password) return supplied === String(member.password);
-        return false;
       };
 
       // =========================
@@ -401,12 +393,74 @@ export default {
 
 
 
+
+      // Secure B5 login: password is verified against the read-only AIC member record.
+      // The AIC service key never reaches the browser. The first successful login
+      // creates the one-time 500-coin grant in D1 and returns the resulting wallet balance.
+      if (url.pathname === "/api/b5/login" && request.method === "POST") {
+        const body = await request.json();
+        const mobile = String(body?.mobile || "").replace(/\D/g, "");
+        const password = String(body?.password || "");
+        if (!/^\d{10}$/.test(mobile) || !password) return json({ success:false, error:"Invalid B5 login details." }, 400);
+        const member = await findAicMember({ mobile });
+        if (!member) return json({ success:false, error:"B5 member not found." }, 404);
+        const ok = await verifyAicPassword(password, member.passwordHash);
+        if (!ok) return json({ success:false, error:"Incorrect B5 password." }, 401);
+        const memberId = String(member.memberId || "").trim();
+        if (!memberId) return json({ success:false, error:"B5 member ID missing." }, 500);
+        await ensureB5GrantTable();
+        let grant = await env.DB.prepare(`SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`).bind(memberId).first();
+        let grantedNow = false;
+        if (!grant) {
+          try {
+            await env.DB.prepare(`INSERT INTO b5_coin_grants (member_id, coins) VALUES (?, ?)`).bind(memberId, B5_INITIAL_COINS).run();
+            grant = { member_id: memberId, coins: B5_INITIAL_COINS };
+            grantedNow = true;
+          } catch (e) {
+            grant = await env.DB.prepare(`SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`).bind(memberId).first();
+            if (!grant) throw e;
+          }
+        }
+        // Keep the actual Magizh wallet in Magizh state/D1 backup. The grant table
+        // records only that the one-time 500 was issued; it is not the live wallet.
+        let users = await loadCurrentState("magizhUsers");
+        if (!users || typeof users !== "object" || Array.isArray(users)) users = {};
+        const existingUser = users[memberId] || Object.values(users).find(u => String(u?.phone || "").replace(/\D/g, "") === mobile);
+        let coins = Math.max(0, Number(existingUser?.coins ?? 0) || 0);
+        if (!existingUser && !grantedNow) coins = Number(grant?.coins || B5_INITIAL_COINS);
+        if (grantedNow) coins += B5_INITIAL_COINS;
+        const customer = {
+          ...(existingUser || {}),
+          id: memberId,
+          name: member.name || existingUser?.name || "",
+          phone: member.mobile || mobile,
+          email: member.email || existingUser?.email || "",
+          address: existingUser?.address || member.place || "",
+          addresses: Array.isArray(existingUser?.addresses) ? existingUser.addresses : [],
+          memberType: "B5",
+          b5MemberId: memberId,
+          b5Status: member.status || "",
+          b5Level: member.level ?? null,
+          referralId: member.referralId || "",
+          coins
+        };
+        users[memberId] = customer;
+        await saveCurrentState("magizhUsers", users);
+        return json({
+          success:true, grantedNow, coins,
+          member:{ memberId, name:member.name||"", mobile:member.mobile||mobile, email:member.email||"", place:member.place||"", status:member.status||"", level:member.level ?? null, referralId:member.referralId||"" }
+        });
+      }
+
       // =========================
-      // B5 MEMBER LOOKUP / LOGIN / INITIAL COIN GRANT
+      // B5 MEMBER LOOKUP / INITIAL COIN GRANT
       // =========================
-      const b5Result = async (member) => {
-        const memberId = String(member?.memberId || "").trim();
-        if (!memberId) throw new Error("B5 member ID missing");
+      if (url.pathname === "/api/b5/lookup" && request.method === "POST") {
+        const body = await request.json();
+        const member = await findAicMember({ mobile: body?.mobile, memberId: body?.memberId });
+        if (!member) return json({ success: false, found: false, error: "B5 member not found" }, 404);
+        const memberId = String(member.memberId || "").trim();
+        if (!memberId) return json({ success: false, found: false, error: "B5 member ID missing" }, 500);
         await ensureB5GrantTable();
         const existing = await env.DB.prepare(
           `SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`
@@ -419,37 +473,19 @@ export default {
             grantedNow = true;
             grantedCoins = B5_INITIAL_COINS;
           } catch (error) {
+            // Another request may have granted the same member at the same time.
+            // Re-read and treat the existing grant as already claimed.
             const afterRace = await env.DB.prepare(
               `SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`
             ).bind(memberId).first();
             if (!afterRace) throw error;
           }
         }
-        return {
-          success: true,
-          found: true,
+        return json({
+          success: true, found: true,
           member: { memberId, name: member.name || "", mobile: member.mobile || "", email: member.email || "", status: member.status || "", level: member.level ?? null, referralId: member.referralId || "" },
           coin: { grantedNow, grantedCoins, initialCoins: B5_INITIAL_COINS }
-        };
-      };
-
-      if (url.pathname === "/api/b5/login" && request.method === "POST") {
-        const body = await request.json();
-        const login = String(body?.login || "").trim();
-        const password = String(body?.password || "");
-        if (!login || !password) return json({ success: false, error: "B5 login details are required" }, 400);
-        const member = await findAicMember({ mobile: login, memberId: login });
-        if (!member) return json({ success: false, error: "B5 member not found" }, 404);
-        const valid = await verifyAicPassword(password, member);
-        if (!valid) return json({ success: false, error: "Incorrect B5 password" }, 401);
-        return json(await b5Result(member));
-      }
-
-      if (url.pathname === "/api/b5/lookup" && request.method === "POST") {
-        const body = await request.json();
-        const member = await findAicMember({ mobile: body?.mobile, memberId: body?.memberId });
-        if (!member) return json({ success: false, found: false, error: "B5 member not found" }, 404);
-        return json(await b5Result(member));
+        });
       }
 
       // =========================*

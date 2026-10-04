@@ -2,7 +2,6 @@
   "name": "magizh-api-fdb2",
   "main": "worker.js",
   "compatibility_date": "2026-10-02",
-  "keep_vars": true,
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
@@ -30,5 +29,6 @@
       "binding": "BUCKET",
       "bucket_name": "magizh-products"
     }
-  ]
+  ],
+  "keep_vars": true
 }

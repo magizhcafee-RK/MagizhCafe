@@ -1,17 +1,7 @@
-/* Magizh ↔ AIC B5 bridge
-   Final version: B5 uses Member ID/mobile + password only. No OTP UI.
-   The actual password check and one-time 500-coin grant happen server-side.
+/* Magizh ↔ AIC B5 bridge compatibility shim.
+   B5 authentication and the one-time 500-coin grant are handled securely by
+   the Magizh Worker at /api/b5/login. No AIC secret is stored in the browser.
 */
 (function(){
-  const API = '/api/b5';
-  window.magizhB5Lookup = async function(login, password){
-    const response = await fetch(API + '/login', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({login:String(login||'').trim(),password:String(password||'')})
-    });
-    let data=null; try{data=await response.json()}catch(_){ }
-    if(!response.ok || !data?.success) throw new Error(data?.error || 'B5 login failed.');
-    return data;
-  };
+  window.magizhB5BridgeReady=true;
 })();
