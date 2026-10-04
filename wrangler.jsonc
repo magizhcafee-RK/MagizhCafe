@@ -2,6 +2,7 @@
   "name": "magizh-api-fdb2",
   "main": "worker.js",
   "compatibility_date": "2026-10-02",
+  "keep_vars": true,
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
@@ -16,19 +17,10 @@
       "database_id": "df4995ae-0e06-4c9b-9e4f-c36ea4581734"
     }
   ],
-  "send_email": [
-    {
-      "name": "EMAIL"
-    }
-  ],
-  "vars": {
-    "EMAIL_FROM": "SET_THIS_TO_YOUR_VERIFIED_SENDER_EMAIL"
-  },
   "r2_buckets": [
     {
       "binding": "BUCKET",
       "bucket_name": "magizh-products"
     }
-  ],
-  "keep_vars": true
+  ]
 }

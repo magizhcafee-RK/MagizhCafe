@@ -1,0 +1,46 @@
+MAGIZH CAFE - FINAL PROFILE + B5 COIN FIX
+
+IMPORTANT:
+All files in this ZIP are at the ROOT level.
+Do NOT upload the ZIP as a nested folder.
+If using GitHub, place these files directly in the repository root.
+
+Included corrections:
+1. Existing normal customer LOGIN button preserved.
+2. Normal login = Mobile + Password.
+3. B5 login = B5 Member ID/mobile + Password. No B5 OTP UI.
+4. B5 login uses the Magizh Worker -> AIC/Supabase read-only bridge.
+5. First successful B5 connection credits 500 Magizh Coins.
+6. D1 b5_coin_grants prevents duplicate 500-coin credit.
+7. B5 coin balance is saved in Magizh customer state and shown in wallet/profile.
+8. Profile button is in the TOP login/action area after login.
+9. Profile shows Customer ID, B5 ID, name, mobile, age and current coins.
+10. Profile address can be updated.
+11. Saved profile address is automatically filled during checkout.
+12. Checkout still allows the customer to change the address for that order.
+13. Profile updates are backed up through /api/customer/profile.
+14. Existing intro video route, product UI, partner offers, orders and cart are preserved.
+15. wrangler.jsonc includes keep_vars=true so Dashboard runtime variables are not overwritten by a Wrangler deploy.
+
+CLOUDFLARE VARIABLES / SECRETS:
+- AIC_SUPABASE_URL = your BORNTOWN5 Supabase project URL
+- AIC_SUPABASE_SERVICE_KEY = Supabase secret/service key (STORE AS SECRET)
+- EMAIL_FROM = keep your existing value/binding
+
+Do NOT put the Supabase service key inside index.html, worker.js, GitHub source, or the ZIP.
+Add it only as a Cloudflare Worker Secret.
+
+DEPLOY:
+- Build command: node build.mjs
+- Deploy command: npx wrangler deploy
+- The build output is generated automatically as public/.
+
+TEST AFTER DEPLOY:
+A. Open Magizh -> Register -> B5 User.
+B. Enter an existing AIC B5 mobile/member ID + password.
+C. First login: expect 500 Magizh Coins and a congratulations message.
+D. Open Profile: verify Customer ID, B5 ID and 500 coins.
+E. Logout and normal Login with the same mobile + password.
+F. Profile should open again and show the same coin balance.
+G. Login again as B5: 500 must NOT be added again.
+H. Open an order -> Address: saved profile address should be filled automatically; customer can change it for that order.
