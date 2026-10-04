@@ -1,53 +1,67 @@
-MAGIZH CAFE – FINAL CORRECTION PACKAGE
-======================================
+MAGIZH CAFE – FINAL PROFILE + B5 LOGIN + COIN FIX
 
-BASE
-----
-index.html from the previously confirmed working base is retained as the main customer page.
-The package is ROOT-LEVEL only: there is no extra nested source folder inside this ZIP.
+UPLOAD STRUCTURE
+----------------
+All files in this package are at the ZIP ROOT. There is NO extra nested project folder.
+
+BASE PRESERVED
+--------------
+- Existing Magizh Cafe mobile UI
+- Existing login button / normal mobile + password login
+- Intro video flow
+- Products / product images
+- Partner offers / sliders
+- My Orders / View Cart / Logout
+- Existing admin and partner pages
 
 FINAL CORRECTIONS
 -----------------
-1. Existing top LOGIN button preserved.
-2. Logged-in header keeps My Orders, View Cart and Logout.
-3. Profile is now added to the TOP header beside My Orders.
-4. The old bottom/footer Profile option is removed/blocked.
-5. Profile shows name, mobile, email, Customer ID, B5 ID and live Magizh Coin balance.
-6. Profile supports saved addresses (Home / Work / Other), default address and address editing.
-7. Checkout automatically loads the customer's default saved address.
-8. Checkout can switch to another saved address or edit the address for that order.
-9. Optional “Save this address to my profile” is available at checkout.
-10. B5 login is Mobile + Password only. No OTP.
-11. B5 login is verified server-side against the existing AIC read-only member data.
-12. First successful B5 connection grants 500 Magizh Coins once only.
-13. The 500-coin grant is stored in D1 and the live Magizh wallet is stored in Magizh state + customer backup.
-14. Repeat B5 login does not add another 500; the actual current wallet balance is retained.
-15. AIC is read-only. The AIC service key is never placed in frontend code.
-16. wrangler.jsonc contains keep_vars=true so dashboard runtime variables/secrets are not overwritten by the next deploy.
-17. Intro video route, products, product images, partner offers, sliders and existing UI are preserved.
+1. Profile button is now in the top logged-in header.
+2. Any bottom/footer Profile button is removed.
+3. Profile shows:
+   - Name
+   - Mobile number
+   - Customer ID
+   - B5 Member ID
+   - Account type
+   - Current Magizh Coins
+   - Primary address + PIN code
+4. Profile can be updated.
+5. Saved addresses can be added, selected as primary, and deleted.
+6. Checkout automatically fills the saved primary address.
+7. Customer can edit the delivery address before placing an order.
+8. B5 login uses Member ID/mobile + password only. NO OTP.
+9. B5 login is verified server-side against the existing AIC Supabase member record.
+10. First valid B5 connection receives 500 Magizh Coins in the server-side wallet.
+11. The one-time 500-coin grant is protected by D1 duplicate protection.
+12. Existing stale grant records from the earlier buggy bridge are reconciled into the server wallet once, so a valid user is not left at 0 coins.
+13. B5 coin balance is shown in the Profile / wallet and product coin display.
+14. Wrangler keep_vars=true is enabled so Dashboard runtime variables are not removed by deploy configuration.
 
-CLOUDFLARE VARIABLES
---------------------
-Keep these in the Magizh Worker dashboard:
-- AIC_SUPABASE_URL
-- AIC_SUPABASE_SERVICE_KEY (Secret)
-- EMAIL_FROM
-The package does NOT contain the actual secret value.
+CLOUDFLARE VARIABLES / SECRETS
+-------------------------------
+Keep these in Cloudflare Worker Settings > Variables & Secrets:
+- AIC_SUPABASE_URL       (Variable)
+- AIC_SUPABASE_SERVICE_KEY  (Secret – keep encrypted)
+- EMAIL_FROM             (Variable or Secret as appropriate for the Email binding)
+
+Do NOT put the AIC service key in this ZIP, GitHub, HTML, or JavaScript frontend.
 
 DEPLOY
 ------
-Upload/replace these root-level files in the existing Magizh Cafe GitHub project.
-Do not put them inside another folder.
-Then let the existing Workers Build run:
-  Build: node build.mjs
-  Deploy: npx wrangler deploy
+1. Upload/replace these root files in the existing MagizhCafe GitHub repository.
+2. Keep production branch: main.
+3. Build command: node build.mjs
+4. Deploy command: npx wrangler deploy
+5. Do not modify the AIC/B5 app itself.
 
-TEST
-----
-A) Open Magizh and login with an existing B5 member.
-B) B5 User -> mobile + password -> LOGIN.
-C) First successful connection should show 500 coins credited and Profile should show 500.
-D) Login again: no second 500; the wallet should show the actual current balance.
-E) Open Profile from the TOP header.
-F) Add/update an address and then open View Cart -> Continue to Address.
-G) The saved/default address should be filled automatically; another saved address can be selected or the order address edited.
+TEST AFTER DEPLOY
+-----------------
+A. Existing normal customer login: Mobile + Password -> LOGIN.
+B. Logged-in header should show: My Orders | Profile | View Cart | Logout.
+C. Tap Profile -> verify name/mobile/ID/coins/address.
+D. B5 User -> mobile or B5 Member ID + password -> LOGIN.
+E. First valid B5 login -> 500 coins in Profile wallet.
+F. Log out and log in again -> balance must NOT receive another 500.
+G. Edit/save address -> start an order -> saved address should auto-fill.
+H. Change address during checkout -> order uses the changed address and saves it as primary.

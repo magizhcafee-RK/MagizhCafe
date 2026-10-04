@@ -52,6 +52,22 @@ export default {
       // Required Worker secrets/vars: AIC_SUPABASE_URL and AIC_SUPABASE_SERVICE_KEY.
       const B5_INITIAL_COINS = 500;
 
+      const sha256Hex = async (value) => {
+        const data = new TextEncoder().encode(String(value || ""));
+        const digest = await crypto.subtle.digest("SHA-256", data);
+        return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+      };
+
+      const ensureB5WalletTable = async () => {
+        await env.DB.prepare(`
+          CREATE TABLE IF NOT EXISTS b5_coin_wallets (
+            member_id TEXT PRIMARY KEY,
+            balance INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+          )
+        `).run();
+      };
+
       const ensureB5GrantTable = async () => {
         await env.DB.prepare(`
           CREATE TABLE IF NOT EXISTS b5_coin_grants (
@@ -84,66 +100,6 @@ export default {
           const phone = String(member?.mobile || "").replace(/\D/g, "");
           return (normalizedId && mid === normalizedId) || (normalizedMobile && phone === normalizedMobile);
         }) || null;
-      };
-
-      const sha256Hex = async value => {
-        const bytes = new TextEncoder().encode(String(value || ""));
-        const digest = await crypto.subtle.digest("SHA-256", bytes);
-        return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
-      };
-
-      const grantB5CoinsAndSyncCustomer = async member => {
-        const memberId = String(member?.memberId || "").trim();
-        if (!memberId) throw new Error("B5 member ID missing");
-        await ensureB5GrantTable();
-        let grant = await env.DB.prepare(
-          `SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`
-        ).bind(memberId).first();
-        let grantedNow = false;
-        if (!grant) {
-          try {
-            await env.DB.prepare(`INSERT INTO b5_coin_grants (member_id, coins) VALUES (?, ?)`).bind(memberId, B5_INITIAL_COINS).run();
-            grant = { member_id: memberId, coins: B5_INITIAL_COINS };
-            grantedNow = true;
-          } catch (_) {
-            grant = await env.DB.prepare(
-              `SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`
-            ).bind(memberId).first();
-          }
-        }
-
-        const users = (await loadCurrentState("magizhUsers")) || {};
-        const old = users[memberId] || {};
-        let balance = Number(old.coins);
-        if (!Number.isFinite(balance) || balance < 0) balance = 0;
-
-        // First connection is marked permanently in the Magizh customer record.
-        // If an older build already created the grant table but failed to store the
-        // wallet, recover the missing 500 once; later logins never restore spent coins.
-        const alreadySynced = old.b5InitialCoinsCredited === true;
-        if (!alreadySynced) {
-          if (grantedNow) balance += B5_INITIAL_COINS;
-          else if (balance <= 0) balance = Number(grant?.coins || B5_INITIAL_COINS) || B5_INITIAL_COINS;
-        }
-
-        const user = {
-          ...old,
-          id: memberId,
-          name: member.name || old.name || "",
-          phone: member.mobile || old.phone || "",
-          email: member.email || old.email || "",
-          address: member.address || old.address || "",
-          pincode: member.pincode || old.pincode || "",
-          memberType: "B5",
-          b5MemberId: memberId,
-          b5Status: member.status || "ACTIVE",
-          b5Level: member.level ?? old.b5Level ?? null,
-          b5InitialCoinsCredited: true,
-          coins: Math.floor(balance)
-        };
-        users[memberId] = user;
-        await saveCurrentState("magizhUsers", users);
-        return { user, grantedNow, balance: user.coins };
       };
 
       // =========================
@@ -435,39 +391,65 @@ export default {
 
 
       // =========================
-      // B5 LOGIN + FIRST CONNECTION
+      // B5 PASSWORD LOGIN + SERVER-SIDE WALLET
       // =========================
       if (url.pathname === "/api/b5/login" && request.method === "POST") {
-        const body = await request.json();
-        const login = String(body?.login || "").trim();
-        const password = String(body?.password || "");
-        if (!login || !password) return json({ success: false, error: "B5 login requires ID/mobile and password." }, 400);
-        const member = await findAicMember({
-          mobile: /^\d{10}$/.test(login) ? login : "",
-          memberId: /^\d{10}$/.test(login) ? "" : login
-        });
-        if (!member) return json({ success: false, error: "B5 member not found." }, 404);
-        if (String(member.status || "").toLowerCase() === "rejected") return json({ success: false, error: "This B5 account is not active." }, 403);
-        const storedHash = String(member.passwordHash || "").trim().toLowerCase();
-        if (!storedHash) return json({ success: false, error: "B5 password is not set. Please contact B5 Admin." }, 401);
-        const suppliedHash = await sha256Hex(password);
-        if (suppliedHash !== storedHash) return json({ success: false, error: "Incorrect B5 password." }, 401);
+        try {
+          const body = await request.json();
+          const password = String(body?.password || "");
+          const memberId = String(body?.memberId || "").trim().toUpperCase();
+          const mobile = String(body?.mobile || "").replace(/\D/g, "");
+          if (!password) return json({ success: false, error: "Password is required" }, 400);
+          const member = await findAicMember({ mobile, memberId });
+          if (!member) return json({ success: false, error: "B5 member not found" }, 404);
+          const suppliedHash = await sha256Hex(password);
+          const storedHash = String(member.passwordHash || "").trim().toLowerCase();
+          if (!storedHash || suppliedHash !== storedHash) {
+            return json({ success: false, error: "Incorrect B5 password" }, 401);
+          }
+          const id = String(member.memberId || "").trim();
+          if (!id) return json({ success: false, error: "B5 Member ID missing" }, 500);
 
-        const synced = await grantB5CoinsAndSyncCustomer(member);
-        return json({
-          success: true,
-          member: {
-            memberId: String(member.memberId || ""),
-            name: member.name || "",
-            mobile: member.mobile || "",
-            email: member.email || "",
-            address: member.address || "",
-            pincode: member.pincode || "",
-            status: member.status || "ACTIVE",
-            level: member.level ?? null
-          },
-          coin: { grantedNow: synced.grantedNow, grantedCoins: synced.grantedNow ? B5_INITIAL_COINS : 0, balance: synced.balance }
-        });
+          await ensureB5GrantTable();
+          await ensureB5WalletTable();
+          let grant = await env.DB.prepare(`SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`).bind(id).first();
+          let wallet = await env.DB.prepare(`SELECT member_id, balance FROM b5_coin_wallets WHERE member_id = ?`).bind(id).first();
+          let firstCredit = false;
+
+          if (!wallet) {
+            // The earlier bridge could create the grant record before the frontend
+            // actually saved the wallet. If that happened, migrate the one-time
+            // 500-coin grant into the real server-side wallet exactly once.
+            const startingBalance = grant ? Number(grant.coins || B5_INITIAL_COINS) : B5_INITIAL_COINS;
+            if (!grant) {
+              try {
+                await env.DB.prepare(`INSERT INTO b5_coin_grants (member_id, coins) VALUES (?, ?)`).bind(id, B5_INITIAL_COINS).run();
+                grant = { member_id: id, coins: B5_INITIAL_COINS };
+                firstCredit = true;
+              } catch (_) {
+                grant = await env.DB.prepare(`SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`).bind(id).first();
+              }
+            }
+            await env.DB.prepare(`INSERT OR IGNORE INTO b5_coin_wallets (member_id, balance) VALUES (?, ?)`).bind(id, startingBalance).run();
+            wallet = await env.DB.prepare(`SELECT member_id, balance FROM b5_coin_wallets WHERE member_id = ?`).bind(id).first();
+            if (grant && !firstCredit && !wallet) {
+              await env.DB.prepare(`INSERT OR IGNORE INTO b5_coin_wallets (member_id, balance) VALUES (?, ?)`).bind(id, startingBalance).run();
+              wallet = await env.DB.prepare(`SELECT member_id, balance FROM b5_coin_wallets WHERE member_id = ?`).bind(id).first();
+            }
+            // If a stale grant existed from the previous buggy version, this is a
+            // one-time reconciliation; later logins read the wallet and never add again.
+            if (!firstCredit && grant && Number(startingBalance) === B5_INITIAL_COINS) firstCredit = true;
+          }
+
+          const balance = Math.max(0, Number(wallet?.balance || 0));
+          return json({
+            success: true,
+            member: { memberId: id, name: member.name || "", mobile: member.mobile || "", email: member.email || "", status: member.status || "", level: member.level ?? null, referralId: member.referralId || "" },
+            coin: { firstCredit, balance, initialCoins: B5_INITIAL_COINS }
+          });
+        } catch (error) {
+          return json({ success: false, error: error?.message || "B5 login failed" }, 500);
+        }
       }
 
       // =========================
@@ -479,11 +461,30 @@ export default {
         if (!member) return json({ success: false, found: false, error: "B5 member not found" }, 404);
         const memberId = String(member.memberId || "").trim();
         if (!memberId) return json({ success: false, found: false, error: "B5 member ID missing" }, 500);
-        const synced = await grantB5CoinsAndSyncCustomer(member);
+        await ensureB5GrantTable();
+        const existing = await env.DB.prepare(
+          `SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`
+        ).bind(memberId).first();
+        let grantedNow = false;
+        let grantedCoins = 0;
+        if (!existing) {
+          try {
+            await env.DB.prepare(`INSERT INTO b5_coin_grants (member_id, coins) VALUES (?, ?)`).bind(memberId, B5_INITIAL_COINS).run();
+            grantedNow = true;
+            grantedCoins = B5_INITIAL_COINS;
+          } catch (error) {
+            // Another request may have granted the same member at the same time.
+            // Re-read and treat the existing grant as already claimed.
+            const afterRace = await env.DB.prepare(
+              `SELECT member_id, coins, granted_at FROM b5_coin_grants WHERE member_id = ?`
+            ).bind(memberId).first();
+            if (!afterRace) throw error;
+          }
+        }
         return json({
           success: true, found: true,
           member: { memberId, name: member.name || "", mobile: member.mobile || "", email: member.email || "", status: member.status || "", level: member.level ?? null, referralId: member.referralId || "" },
-          coin: { grantedNow: synced.grantedNow, grantedCoins: synced.grantedNow ? B5_INITIAL_COINS : 0, initialCoins: B5_INITIAL_COINS, balance: synced.balance }
+          coin: { grantedNow, grantedCoins, initialCoins: B5_INITIAL_COINS }
         });
       }
 
