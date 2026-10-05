@@ -1,8 +1,10 @@
 {
-  "name": "magizh-cafe-test-server",
-  "version": "3.0.0",
-  "private": true,
-  "scripts": {
-    "start": "node server.js"
+  "name":"borntowin5",
+  "version":"1.0.0",
+  "private":true,
+  "scripts":{"start":"node server.js"},
+  "dependencies":{
+    "express":"^4.21.2",
+    "nodemailer":"^7.0.6"
   }
 }

@@ -1,18 +1,14 @@
-MAGIZH FINAL B5 + PROFILE CORRECTION
+MAGIZH SERVER REPLACEMENT FILES
 
-UPLOAD THIS FOLDER CONTENT DIRECTLY TO THE ROOT OF THE MagizhCafe GitHub repository.
-DO NOT create MagizhCafe_FINAL_B5_Profile_Correction/MagizhCafe-main/ nested folders.
+Replace these existing GitHub files with the files in this folder:
+1. member.html -> replace old member.html
+2. admin.html -> replace old admin.html
+3. server.js -> replace old server.js
 
-The deploy source is index.html.
-B5 login is Mobile/Member ID + Password only.
-First successful B5 connection credits 500 Magizh Coins once and persists the wallet server-side.
-Profile is shown at the TOP beside My Orders / View Cart / Logout.
-Saved profile address is auto-filled at checkout, but can be changed for an individual order.
+Do NOT rename the files.
+Do NOT upload these as new names such as member(5).html or admin(7).html.
+Keep package.json unchanged.
 
-Cloudflare Runtime variables/secrets required:
-- AIC_SUPABASE_URL (Variable)
-- AIC_SUPABASE_SERVICE_KEY (Secret)
-- EMAIL_FROM (verified sender variable as appropriate)
-
-wrangler.jsonc includes keep_vars=true so dashboard variables are not overwritten by deploy.
-Do not put the Supabase service key into any file.
+The new member.html contains the V26 server-connected Level Tracking UI inside the existing Member V15 page.
+The new admin.html contains the V26 server-connected Level Tracking section inside the existing Admin V15 page.
+The new server.js adds the Level Tracking API/database flow.

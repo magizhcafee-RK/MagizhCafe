@@ -1,0 +1,224 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BORNTOWIN5 Level Tracking</title><style>*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#172033;font-family:system-ui,-apple-system,"Noto Sans Tamil",sans-serif}.demo{background:#171c2b;color:white;text-align:center;padding:7px;font-size:11px}.top{height:64px;background:white;border-bottom:1px solid #e6e9ef;display:flex;align-items:center;padding:0 14px;gap:10px;position:sticky;top:0;z-index:4}.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7e1839,#d39a42);color:#fff;display:grid;place-items:center;font-size:24px;font-weight:800}.brand b{display:block;font-size:15px}.brand small{color:#7b8496;font-size:10px}.wrap{max-width:720px;margin:auto;padding:15px 12px 40px}.card{background:#fff;border:1px solid #e4e8ef;border-radius:18px;padding:17px;margin-bottom:14px;box-shadow:0 5px 20px #00000008}.title{font-weight:800;font-size:17px;margin-bottom:10px}.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #eee;font-size:13px}.row:last-child{border-bottom:0}.badge{padding:5px 9px;border-radius:20px;background:#e1f4e7;color:#227442;font-weight:800;font-size:10px}.ref{background:#fafbfe;border:1px solid #e4e8ef;padding:10px;border-radius:10px;margin:7px 0}.primary,button{width:100%;padding:12px;border:0;border-radius:10px;background:#8b1e3f;color:#fff;font-weight:800;cursor:pointer}.secondary{width:100%;padding:11px;border:1px solid #8b1e3f;border-radius:10px;background:#fff;color:#8b1e3f;font-weight:800}.danger{background:#fde5e5;color:#ae2929;border-color:#e4aaaa}.success{background:#eef7f0;color:#277642;border-radius:10px;padding:11px;font-size:11px;margin-top:9px;line-height:1.5}.warn{background:#fff6df;border:1px solid #efd28a;color:#806000;padding:11px;border-radius:10px;margin-top:9px;line-height:1.5;font-size:11px}.info{background:#fff8fb;border-left:4px solid #8b1e3f;padding:11px;border-radius:10px;margin-bottom:12px;font-size:11px;line-height:1.5}.note,.small{font-size:11px;color:#7b8496}.hidden{display:none}.level{border:1px solid #e4e8ef;border-radius:12px;margin:8px 0;overflow:hidden}.lh{display:flex;justify-content:space-between;padding:11px;background:#fafbfe;font-weight:800;font-size:11px;color:#8b1e3f}.pay{padding:9px;border-top:1px solid #eee;font-size:11px}input,textarea{width:100%;padding:11px;margin:5px 0 10px;border:1px solid #dfe3ec;border-radius:10px;font:inherit;background:#fff}label{font-size:10px;font-weight:800}.sectionTitle{display:flex;justify-content:space-between;align-items:center;gap:8px}.mini{width:auto;padding:8px 10px;font-size:10px}.copyMini{width:auto!important;padding:5px 8px!important;margin:0!important;font-size:9px!important;border-radius:7px!important;box-shadow:none!important;white-space:nowrap}.copyRow{display:flex!important;align-items:center;gap:8px}.copyRow>b{flex:1;text-align:right;overflow-wrap:anywhere}.topnav{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}.topnav button{background:#f0f1f6;color:#30384d}.topnav button.active{background:#8b1e3f;color:#fff}@media(max-width:480px){.wrap{padding:12px 10px 30px}}</style><style id="b5-unified-theme">
+:root{--b5-green:#064b35;--b5-green2:#0a6a4b;--b5-gold:#c89a4b;--b5-cream:#f8f4ea;--b5-ink:#18241f;--b5-muted:#6f7b76;--b5-line:#e4e9e5;--b5-soft:#f5f8f5;--b5-radius:18px}
+*{box-sizing:border-box}
+body{background:linear-gradient(180deg,#f7f8f5 0,#f4f6f4 100%)!important;color:var(--b5-ink)!important;font-family:Inter,system-ui,-apple-system,"Noto Sans Tamil","Noto Sans",sans-serif!important;font-size:13px}
+.top,header{background:rgba(255,255,255,.96)!important;border-bottom:1px solid var(--b5-line)!important;backdrop-filter:blur(10px)}
+.logo{background:linear-gradient(135deg,var(--b5-green),var(--b5-gold))!important;box-shadow:0 5px 14px #064b3520}
+.brand b{color:var(--b5-green)!important;font-weight:850!important;letter-spacing:.1px}.brand small{color:var(--b5-muted)!important}
+.card{background:rgba(255,255,255,.97)!important;border:1px solid var(--b5-line)!important;border-radius:var(--b5-radius)!important;box-shadow:0 8px 26px rgba(6,75,53,.06)!important}
+.hero{background:linear-gradient(135deg,var(--b5-green),#0b6b4b 62%,var(--b5-gold))!important;border-radius:22px!important;box-shadow:0 10px 28px rgba(6,75,53,.14)}
+.hero h1,.title{font-family:inherit!important;color:var(--b5-green)!important;font-weight:850!important;letter-spacing:.1px}
+.hero h1{color:#fff!important}.hero p{color:#eef7f2!important}
+button,.primary,.send{background:linear-gradient(135deg,var(--b5-green),var(--b5-green2))!important;color:#fff!important;border-radius:12px!important;box-shadow:0 5px 12px rgba(6,75,53,.10)}
+.secondary{background:#fff!important;color:var(--b5-green)!important;border:1px solid #b8cfc3!important}
+input,select,textarea{border:1px solid #d7e1db!important;border-radius:11px!important;color:var(--b5-ink)!important}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--b5-gold)!important;box-shadow:0 0 0 3px rgba(200,154,75,.14)!important}
+.stat b,.account h4,.reportTable th{color:var(--b5-green)!important}
+.pill,.tag{background:#edf5f0!important;color:var(--b5-green)!important}
+.badge,.success{background:#edf7f0!important;color:#246b47!important}
+.info{background:#f7faf7!important;border-left-color:var(--b5-gold)!important}
+.warn{background:#fff8e8!important;border-color:#efdca8!important}
+/* unified accordion / slide cards */
+.b5-accordion-card>.b5-accordion-head,.b5-account-card>h4{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;user-select:none}
+.b5-accordion-head:after,.b5-account-card>h4:after{content:'⌄';font-size:16px;color:var(--b5-gold);transition:transform .2s ease}
+.b5-accordion-card.is-collapsed>.b5-accordion-head:after,.b5-account-card.is-collapsed>h4:after{transform:rotate(-90deg)}
+.b5-accordion-body{overflow:hidden;max-height:5000px;opacity:1;transition:max-height .25s ease,opacity .18s ease,padding .2s ease}
+.b5-accordion-card.is-collapsed>.b5-accordion-body,.b5-account-card.is-collapsed>.b5-account-body{max-height:0;opacity:0;overflow:hidden;padding-top:0!important;padding-bottom:0!important}
+.b5-accordion-card>.b5-accordion-head{padding:2px 0 8px;margin-bottom:2px}
+.b5-accordion-card.is-collapsed>.b5-accordion-head{margin-bottom:0}
+.b5-account-card{padding:12px!important;border-radius:14px!important;background:#fff!important;border:1px solid var(--b5-line)!important}
+.b5-account-card>h4{margin:0!important;padding:2px 0!important;color:var(--b5-green)!important;font-size:13px!important}
+.b5-account-body{max-height:5000px;overflow:hidden;opacity:1;transition:max-height .25s ease,opacity .18s ease,padding .2s ease;padding-top:9px}
+.b5-account-card>h4:before{content:'▸';font-size:10px;color:var(--b5-gold);margin-right:2px}.b5-account-card:not(.is-collapsed)>h4:before{content:'▾'}
+.b5-level-row{border:1px solid var(--b5-line);border-radius:14px;margin:8px 0;overflow:hidden;background:#fff}.b5-level-row .b5-level-head{padding:12px;background:var(--b5-soft);font-weight:850;color:var(--b5-green);cursor:pointer;display:flex;justify-content:space-between}.b5-level-row .b5-level-body{padding:10px}
+@media(max-width:600px){.card{border-radius:16px!important}.hero{border-radius:18px!important}.b5-account-card{margin-bottom:8px!important}}
+
+/* V9 Royal Level Tracking */
+body{background:radial-gradient(circle at 15% 0,#eef6f0 0,#f6f8f5 35%,#f3f4f1 100%)!important}
+.top{height:72px!important;box-shadow:0 4px 18px rgba(6,75,53,.07)!important}
+.logo{width:46px!important;height:46px!important;border-radius:15px!important}
+.card{border-radius:22px!important;padding:18px!important;box-shadow:0 10px 30px rgba(6,75,53,.065)!important;position:relative;overflow:hidden}
+.card:before{content:"";position:absolute;left:0;top:0;width:4px;height:100%;background:linear-gradient(180deg,var(--b5-gold),transparent);opacity:.55}
+.title{font-size:18px!important;letter-spacing:.1px}
+.title:after{content:'⌄';float:right;color:var(--b5-gold);font-size:18px;font-weight:900;transition:transform .22s ease}
+.card.is-collapsed .title:after{transform:rotate(-90deg)}
+.b5-accordion-body{overflow:hidden;max-height:1400px;opacity:1;transition:max-height .28s ease,opacity .2s ease,padding .2s ease}
+.card.is-collapsed .b5-accordion-body{max-height:0;opacity:0;padding-top:0!important;padding-bottom:0!important}
+.topnav button{background:#f8f4ea!important;color:var(--b5-green)!important;border:1px solid #e7dcc5!important}
+.topnav button.active{background:linear-gradient(135deg,var(--b5-green),var(--b5-green2))!important;color:#fff!important;border-color:var(--b5-gold)!important}
+#ltMembership,#ltReferral,#ltReferrals,#ltUpgrade,#ltEarnings,#ltHistory,#ltPayment{scroll-margin-top:90px}
+</style>
+
+</head><body>
+<header class="top"><div class="logo"><img src="b5-logo.png" alt="B5 Logo"></div><div class="brand"><b>BORNTOWIN5</b><small>Member • Level Tracking</small></div><div class="top-actions"><button onclick="levelTrackLogout()">Logout</button></div></header>
+<main class="wrap">
+<div class="topnav"><button class="active" onclick="view('member')">👤 MEMBER</button><button onclick="view('receiver')">💳 RECEIVER</button></div>
+<section id="member">
+<div class="info"><b>SEQUENTIAL LEVEL FLOW</b><br>Direct referrals and level status are loaded from the BORNTOWIN5 server.</div>
+<div class="card" id="ltMembership"><div class="title">My Membership</div><div class="row"><span>Name</span><b id="mName">—</b></div><div class="row"><span>Mobile</span><b id="mMobile">—</b></div><div class="row"><span>Member ID</span><b id="mId">—</b></div><div class="row"><span>Status</span><span class="badge" id="mStatus">—</span></div><div class="row"><span>Current Level</span><b id="mLevel">—</b></div></div>
+<div class="card" id="ltReferralLink"><div class="title">My Referral Link</div><input id="refLink" readonly><button class="secondary" onclick="copyReferral()">COPY REFERRAL LINK</button></div>
+<div class="card" id="ltReferrals"><div class="title">My Direct Referrals</div><div id="refList"><div class="note">Loading…</div></div><div id="refSummary"></div></div>
+<div class="card" id="ltUpgrade"><div class="title">Level Upgrade</div><div id="memberStatus"><div class="warn">Loading…</div></div><div id="memberPayment"></div></div>
+<div class="card" id="ltEarnings"><div class="title">My Earnings</div><div id="earnings"><div class="note">No confirmed server payment records yet.</div></div></div>
+<div class="card" id="ltHistory"><div class="title">Upgrade History</div><div id="history"><div class="note">No upgrade history yet.</div></div></div>
+</section>
+<section id="receiver" class="hidden"><div class="info"><b>RECEIVER CONFIRMATION</b><br>After the member submits UTR, confirm whether the payment was received.</div><div class="card"><div class="title">Payment Confirmation</div><div id="receiverContent"><div class="note">Loading…</div></div><div id="receiverButtons"></div></div></section>
+</main>
+<script>
+const milestones={1:3,2:5,3:7,4:9,5:11,6:13};
+let state={lt:null,memberDashboard:null};
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function id(){return localStorage.getItem('BORNTOWIN5_MEMBER_ID')||''}
+async function api(url,opt={}){const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opt});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||'Request failed');return d}
+function view(v){$('member').classList.toggle('hidden',v!=='member');$('receiver').classList.toggle('hidden',v!=='receiver');document.querySelectorAll('.topnav button').forEach((b,i)=>b.classList.toggle('active',(i===0&&v==='member')||(i===1&&v==='receiver')));if(v==='receiver')loadReceiver()}
+function detail(k,v){return '<div class="row"><span>'+esc(k)+'</span><b>'+esc(v||'—')+'</b></div>'}
+function paymentDetail(k,v,copy){const val=String(v||'');if(!val)return detail(k,v);return '<div class="row copyRow"><span>'+esc(k)+'</span><b>'+esc(val)+'</b><button type="button" class="copyMini" data-copy="'+esc(val)+'" onclick="copyText(this.dataset.copy)">COPY</button></div>'}
+async function copyText(v){try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(String(v));}else{const t=document.createElement('textarea');t.value=String(v);t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()}const old=document.activeElement; if(old&&old.classList.contains('copyMini')){const label=old.textContent;old.textContent='COPIED ✓';setTimeout(()=>{old.textContent=label},1200)}}catch(e){alert('Copy failed. Please copy manually.')}}
+function paymentProofDraftActive(){const box=$('memberPayment');if(!box)return false;const focused=document.activeElement;if(focused&&box.contains(focused)&&(focused.tagName==='INPUT'||focused.tagName==='TEXTAREA'))return true;return !!box.querySelector('input[id^="utr_"]:not([readonly])') && Array.from(box.querySelectorAll('input[id^="utr_"]:not([readonly])')).some(x=>x.value.trim()) || Array.from(box.querySelectorAll('input[type="file"]:not([disabled])')).some(x=>x.files&&x.files.length>0)}
+async function load(){
+ const mid=id();if(!mid){$('memberStatus').innerHTML='<div class="warn">Member login required.</div>';return}
+ try{
+  const [d,md]=await Promise.all([api('/api/leveltrack/member/dashboard/'+encodeURIComponent(mid)),api('/api/member/dashboard/'+encodeURIComponent(mid))]);
+  state.lt=d;state.memberDashboard=md;d.upgradeHistory=d.upgradeHistory||d.history||[];const m=d.member||{};const level=Number(m.level||1);const refs=(md.levels&&md.levels[1])||[];
+  $('mName').textContent=m.name||'—';$('mMobile').textContent=m.mobile||'—';$('mId').textContent=m.memberId||mid;$('mStatus').textContent=m.status||'ACTIVE';$('mLevel').textContent='L'+level;
+  $('refLink').value=location.origin+'/member.html?ref='+encodeURIComponent(m.memberId);
+  $('refList').innerHTML=refs.length?refs.map((r,i)=>`<div class="ref"><b>${i+1}. ${esc(r.name)}</b><br><span class="small">${esc(r.memberId)} • ${esc(r.mobile)}</span></div>`).join(''):'<div class="note">No direct referrals yet.</div>';
+  const need=milestones[level]||0,count=refs.length;
+  $('refSummary').innerHTML=level>=7?'<div class="success"><b>LEVEL 7 FINAL LEVEL</b> — No further upgrade.</div>':`<div class="success"><b>Direct Referrals: ${count}</b> / ${need} required for L${level} → L${level+1}</div>`;
+  renderUpgrade(level,count);renderEarnings();renderHistory();
+ }catch(e){$('memberStatus').innerHTML='<div class="warn">'+esc(e.message)+'</div>'}
+}
+function renderUpgrade(level,count){
+ const u=state.lt.upgrade;const need=milestones[level]||0;const action=state.lt.action||{type:'NONE'};
+ if(level>=7){$('memberStatus').innerHTML='<div class="success"><b>✓ L7 ACTIVE</b><br>Final level completed.</div>';$('memberPayment').innerHTML='';return}
+ if(!u){
+   if(action.type==='REFERRAL_UPGRADE'){
+     $('memberStatus').innerHTML='<div class="success"><b>✓ NEW REFERRAL MILESTONE COMPLETED</b><br>Your Upgrade is ready.</div><button id="ltReferralUpgradeBtn" class="primary" onclick="requestReferralUpgrade()">UPGRADE</button>';$('memberPayment').innerHTML='';return;
+   }
+   if(action.type==='LEVEL_UPGRADE'){
+     $('memberStatus').innerHTML='<div class="success"><b>✓ REQUIREMENT COMPLETED</b><br>You can upgrade from Level '+level+' to Level '+(level+1)+'.</div><button id="ltRequestUpgradeBtn" class="primary" onclick="requestUpgrade()">UPGRADE • LEVEL '+level+' → LEVEL '+(level+1)+'</button>';$('memberPayment').innerHTML='';return;
+   }
+   const left=Math.max(0,need-count);$('memberStatus').innerHTML=left>0?`<div class="warn">Need ${left} more direct referral${left===1?'':'s'} for the next step.</div>`:'<div class="note">Complete the current Upgrade process to unlock the next Level Upgrade.</div>';$('memberPayment').innerHTML='';return;
+ }
+ const isExtra=u.kind==='REFERRAL_UPGRADE';
+ const p=u.payment;
+ $('memberStatus').innerHTML=String(u.status||'').toLowerCase()==='assigned'?(isExtra?'<div class="success">✓ Upgrade payment details received from Admin.</div>':'<div class="success">✓ Payment details received from Admin for L'+u.from+' → L'+u.to+'</div>'):(isExtra?'<div class="success">✓ Upgrade request sent to Admin.</div>':'<div class="success">✓ Upgrade request: L'+u.from+' → L'+u.to+'</div>');
+ if(!p){$('memberPayment').innerHTML='<div class="warn">Waiting for Admin to send payment details.</div>';return}
+ const parts=Array.isArray(p.parts)&&p.parts.length?p.parts:[{type:'member',label:'MEMBER / RECEIVER',amount:p.amount||u.amount||0,accountDetails:{name:p.payee||'',memberId:p.payeeId||'',mobile:p.payeePhone||'',accountHolder:p.accountHolder||'',bank:p.bank||'',account:p.account||'',ifsc:p.ifsc||'',branch:p.branch||'',upi:p.upi||''},status:u.memberPaid?'SUBMITTED':'PENDING',utr:u.utr||''}];
+ let h='<div class="title">Payment Instructions</div><div class="info" style="margin-bottom:10px">'+(u.kind==='REFERRAL_UPGRADE'?'Upgrade Amount':'Total Upgrade Amount')+': <b>₹ '+Number(p.amount||u.amount||0).toLocaleString()+'</b><br>Complete every payment section below. Each section has its own account details and payment proof.</div>';
+ parts.forEach((x,i)=>{const a=x.accountDetails||{};const done=['SUBMITTED','CONFIRMED','APPROVED'].includes(x.status);h+=`<div class="member" style="border-left:4px solid #8b1e3f"><b>${esc(x.label||'PAYMENT')}</b><div class="row"><span>Amount</span><b>₹ ${Number(x.amount||0).toLocaleString()}</b></div>${x.type==='member'?detail('Member / Receiver',a.name||p.payee):''}${x.type==='member'?detail('Member ID',a.memberId||p.payeeId):''}${x.type==='member'?detail('Phone',a.mobile||p.payeePhone):''}${paymentDetail('Account Holder',a.accountHolder||a.name,true)}${paymentDetail('Bank',a.bank,true)}${paymentDetail('Account Number',a.account,true)}${paymentDetail('IFSC',a.ifsc,true)}${paymentDetail('Branch',a.branch,true)}${paymentDetail('UPI',a.upi,true)}<label>UTR / Transaction ID</label><input id="utr_${i}" value="${esc(x.utr||'')}" placeholder="Enter UTR" ${done?'readonly':''}><label>Payment Screenshot</label><input id="shot_${i}" type="file" accept="image/*" ${done?'disabled':''}><div id="preview_${i}" class="small">${x.screenshot?'✓ Screenshot already submitted':''}</div>${done?'<div class="success" style="margin-top:8px">✓ '+esc(x.status)+'</div>':''}</div>`});
+ if(p.adminApproved)h+='<div class="success"><b>✓ PAYMENT APPROVED</b><br>'+(u.kind==='REFERRAL_UPGRADE'?'Upgrade completed.':'Level upgrade completed.')+'</div>';else if(u.memberPaid)h+='<div class="success">✓ All payment proofs submitted. Waiting for Receiver confirmation and Admin approval.</div>';else h+='<button class="primary" onclick="submitPaymentProofs()">SUBMIT ALL PAYMENT PROOFS</button>';
+ $('memberPayment').innerHTML=h;
+}
+async function submitPaymentProofs(){const u=state.lt.upgrade,p=u?.payment;if(!u||!p)return;const parts=Array.isArray(p.parts)?p.parts:[];const proofs=[];for(let i=0;i<parts.length;i++){const x=parts[i];if(['SUBMITTED','CONFIRMED','APPROVED'].includes(x.status)){proofs.push({type:x.type,utr:x.utr,screenshot:x.screenshot||'existing'});continue}const utr=document.getElementById('utr_'+i)?.value.trim();const file=document.getElementById('shot_'+i)?.files?.[0];if(!utr||!file)return alert('Please enter UTR and upload screenshot for '+x.label);if(file.size>2500000)return alert('Each screenshot must be 2.5 MB or less.');const screenshot=await readImage(file);proofs.push({type:x.type,utr,screenshot});}try{await api('/api/leveltrack/member/upgrade/'+encodeURIComponent(u.id)+'/pay',{method:'POST',body:JSON.stringify({memberId:id(),parts:proofs})});alert('Payment proofs submitted successfully.');await load()}catch(e){alert(e.message)}}
+function readImage(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
+async function requestUpgrade(){const b=document.getElementById('ltRequestUpgradeBtn');if(b){b.textContent='✓ REQUEST SENT';b.disabled=true;b.style.opacity='.72'}try{await api('/api/leveltrack/member/upgrade-request',{method:'POST',body:JSON.stringify({memberId:id()})});await load()}catch(e){if(b){b.textContent='UPGRADE';b.disabled=false;b.style.opacity=''}alert(e.message)}}
+async function requestReferralUpgrade(){const b=document.getElementById('ltReferralUpgradeBtn');if(b){b.textContent='✓ REQUEST SENT';b.disabled=true;b.style.opacity='.72'}try{await api('/api/leveltrack/member/referral-upgrade-request',{method:'POST',body:JSON.stringify({memberId:id()})});await load()}catch(e){if(b){b.textContent='UPGRADE';b.disabled=false;b.style.opacity=''}alert(e.message)}}
+async function submitUTR(){const u=state.lt.upgrade,v=$('utrInput')?.value.trim();if(!u||!v)return alert('Enter UTR.');try{await api('/api/leveltrack/member/upgrade/'+encodeURIComponent(u.id)+'/pay',{method:'POST',body:JSON.stringify({memberId:id(),utr:v})});alert('UTR submitted. Receiver can now confirm.');await load()}catch(e){alert(e.message)}}
+function renderEarnings(){const a=state.lt.earnings||[];$('earnings').innerHTML=a.map(x=>'<div class="pay"><b>LEVEL '+x.level+'</b><br><span class="small">'+x.completed+' / '+x.required+' Completed</span><div style="height:7px;background:#eee;border-radius:99px;margin-top:7px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,(x.completed/x.required)*100)+'%;background:#277642"></div></div></div>').join('')+'<div class="note" style="margin-top:8px">Completed count updates only after Receiver confirmation and Admin approval.</div>'}
+function renderHistory(){const a=state.lt.upgradeHistory||[];$('history').innerHTML=a.length?a.map(x=>'<div class="pay"><b>'+(x.kind==='REFERRAL_UPGRADE'?'Upgrade':'L'+esc(x.from)+' → L'+esc(x.to))+'</b><br><span class="small">Payer: '+esc(x.memberId||x.payerMemberId||'—')+' • Receiver: '+esc(x.payeeId||x.receiverMemberId||'—')+' • '+esc(x.adminApproved?'COMPLETED':'PENDING')+'</span></div>').join(''):'<div class="note">No upgrade history yet.</div>'}
+async function loadReceiver(){const mid=id();if(!mid)return;try{const d=await api('/api/leveltrack/member/dashboard/'+encodeURIComponent(mid));const p=(d.incomingPayments||[]).find(x=>!x.memberAccepted&&!x.adminApproved);if(!p){$('receiverContent').innerHTML='<div class="note">No incoming payment confirmation is waiting for you.</div>';$('receiverButtons').innerHTML='';return}$('receiverContent').innerHTML='<div class="success"><b>PAYMENT TO CONFIRM</b></div>'+detail('Payment Sent By Member ID',p.fromMemberId)+detail('Upgrade',p.kind==='REFERRAL_UPGRADE'?'Upgrade • Seniority L'+(p.seniorityLevel||p.from):'L'+p.from+' → L'+p.to)+detail('Amount','₹ '+(p.amount||'—'))+detail('UTR',p.utr||'—');$('receiverButtons').innerHTML='<button class="primary" onclick="receiverAction(\''+p.id+'\')">✓ PAYMENT RECEIVED</button>'}catch(e){$('receiverContent').innerHTML='<div class="warn">'+esc(e.message)+'</div>'}}
+async function receiverAction(pid){try{await api('/api/leveltrack/member/incoming/'+encodeURIComponent(pid)+'/accept',{method:'POST',body:JSON.stringify({memberId:id()})});alert('Payment received confirmed.');await load();await loadReceiver()}catch(e){alert(e.message)}}
+function copyReferral(){navigator.clipboard?.writeText($('refLink').value);alert('Referral link copied.')}
+setInterval(()=>{if(!paymentProofDraftActive())load()},5000);setInterval(()=>{if(!$('receiver').classList.contains('hidden'))loadReceiver()},5000);load();
+</script><script id="b5-unified-accordion">
+(function(){
+  function makeCardAccordion(card){
+    if(!card || card.dataset.b5Acc==='1') return;
+    const head=card.querySelector(':scope > .title');
+    if(!head) return;
+    const body=document.createElement('div'); body.className='b5-accordion-body';
+    const nodes=Array.from(card.children).filter(n=>n!==head);
+    nodes.forEach(n=>body.appendChild(n));
+    head.classList.add('b5-accordion-head');
+    card.insertBefore(body, null);
+    card.dataset.b5Acc='1';
+    head.addEventListener('click',()=>card.classList.toggle('is-collapsed'));
+  }
+  function makeAccountAccordion(card){
+    if(!card || card.dataset.b5AccountAcc==='1') return;
+    const head=card.querySelector(':scope > h4');
+    if(!head) return;
+    const body=document.createElement('div'); body.className='b5-account-body';
+    const nodes=Array.from(card.children).filter(n=>n!==head);
+    nodes.forEach(n=>body.appendChild(n));
+    card.classList.add('b5-account-card');
+    card.appendChild(body);
+    card.dataset.b5AccountAcc='1';
+    head.addEventListener('click',()=>card.classList.toggle('is-collapsed'));
+  }
+  function init(){
+    document.querySelectorAll('.card').forEach(makeCardAccordion);
+    document.querySelectorAll('.account').forEach(makeAccountAccordion);
+    document.querySelectorAll('.level .lh').forEach(h=>{
+      if(h.dataset.b5LevelAcc==='1') return;
+      const body=h.nextElementSibling;
+      if(!body || !body.classList.contains('pay')) return;
+      h.dataset.b5LevelAcc='1'; h.style.cursor='pointer';
+      h.addEventListener('click',()=>{body.classList.toggle('hidden');});
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+  const obs=new MutationObserver(()=>init());
+  obs.observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+
+
+<script id="b5-leveltrack-nav-v12">
+(function(){
+  const map={membership:'ltMembership',referrals:'ltReferrals',upgrade:'ltUpgrade',earnings:'ltEarnings',history:'ltHistory',payment:'ltUpgrade',receiver:'receiver'};
+  function show(key){
+    document.body.classList.add('b5-embedded');
+    const member=document.getElementById('member');
+    const receiver=document.getElementById('receiver');
+    const cards=Array.from(document.querySelectorAll('#member>.card'));
+    const info=document.querySelector('#member>.info');
+    cards.forEach(c=>c.classList.remove('b5-v12-show'));
+    if(info) info.classList.remove('b5-v12-show');
+    if(member) member.classList.remove('hidden');
+    if(receiver) receiver.classList.remove('b5-v12-show');
+    if(key==='dashboard'){
+      if(cards[0]) cards[0].classList.add('b5-v12-show');
+      if(info) info.classList.add('b5-v12-show');
+      if(receiver) receiver.classList.add('hidden');
+    } else if(key==='receiver'){
+      cards.forEach(c=>c.classList.remove('b5-v12-show'));
+      if(member) member.classList.add('hidden');
+      if(receiver){receiver.classList.remove('hidden');receiver.classList.add('b5-v12-show');}
+    } else {
+      const target=document.getElementById(map[key]);
+      if(target) target.classList.add('b5-v12-show');
+      // Payment Confirmation is the payment area inside Level Upgrade.
+      if(key==='payment'){
+        const t=document.getElementById('ltUpgrade');
+        if(t) t.classList.add('b5-v12-show');
+      }
+      if(receiver) receiver.classList.add('hidden');
+    }
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='LEVELTRACK_NAV')return;show(e.data.section||'dashboard')});
+  window.addEventListener('load',()=>show('dashboard'));
+})();
+</script>
+<style id="b5-v12-nav-style">
+.b5-v12-show{display:block!important}
+.b5-embedded #member>.card,.b5-embedded #member>.info{display:none!important}
+.b5-embedded #member>.card.b5-v12-show,.b5-embedded #member>.info.b5-v12-show{display:block!important}
+.b5-embedded #receiver{display:none!important}
+.b5-embedded #receiver.b5-v12-show{display:block!important}
+.b5-embedded .topnav{display:none!important}
+.b5-embedded .top{display:flex!important;padding-left:72px!important;padding-right:10px!important;position:sticky!important;top:0!important;z-index:20!important;min-height:64px!important}
+.b5-embedded .wrap{padding-top:0}
+</style>
+<script>function levelTrackLogout(){localStorage.removeItem('BORNTOWIN5_MEMBER_ID');try{if(window.parent&&window.parent!==window){window.parent.location.reload();return}}catch(e){}location.reload()}</script>
+<style id="b5-final-leveltrack-header">
+.top{padding-left:72px!important;padding-right:10px!important;position:sticky!important;top:0!important;z-index:20!important;min-height:64px!important;}
+.top .logo{overflow:hidden;background:#fff!important;border:1px solid #d9e3dc!important;}
+.top .logo img{width:100%;height:100%;object-fit:contain;display:block;border-radius:inherit;}
+.top-actions{margin-left:auto;display:flex;gap:8px;}
+.top-actions button{width:auto!important;padding:8px 10px!important;margin:0!important;border-radius:11px!important;}
+@media(max-width:520px){.top{padding-left:72px!important}.top-actions{gap:5px}.top-actions button{font-size:10px;padding:7px 8px!important}}
+</style></body></html>
