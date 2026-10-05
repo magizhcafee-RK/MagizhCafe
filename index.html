@@ -820,6 +820,7 @@ async function completePaymentAndPlace(event){
 function removeDuplicateLoginButtons(){
   document.querySelectorAll('button').forEach(b=>{
     if(b.closest('header'))return;
+    if(b.id==='normalLoginBtn')return;
     if(String(b.textContent||'').trim().toLowerCase()==='login'){b.remove();}
   });
 }
